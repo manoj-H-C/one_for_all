@@ -24,4 +24,5 @@ server:
 
 logging:
   level:
-    com.yourco.platform: DEBUG
+    org.flywaydb: DEBUG
+    org.springframework.boot.autoconfigure.flyway: DEBUG

@@ -1,6 +1,5 @@
 package com.postman.alt.entity;
 
-import com.postman.alt.enums.StatusCategory;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -35,8 +34,8 @@ public class WorkflowStatus {
     private int sortOrder;
 
     // the stable bucket this custom name maps to - see StatusCategory
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "category_id", nullable = false)
     private StatusCategory category;
 
     protected WorkflowStatus() {
