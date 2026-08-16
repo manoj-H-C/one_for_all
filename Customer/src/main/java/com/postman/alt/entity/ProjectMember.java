@@ -1,7 +1,15 @@
-package com.yourco.platform.persistence.entity;
+package com.postman.alt.entity;
 
-import com.yourco.platform.domain.enums.ProjectRole;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "project_member")
@@ -20,8 +28,8 @@ public class ProjectMember {
     @JoinColumn(name = "user_id")
     private AppUser user;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "role_id", nullable = false)
     private ProjectRole role;
 
     protected ProjectMember() {

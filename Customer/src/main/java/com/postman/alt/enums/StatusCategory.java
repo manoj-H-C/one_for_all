@@ -1,4 +1,4 @@
-package com.yourco.platform.domain.enums;
+package com.postman.alt.enums;
 
 /**
  * A stable bucket every custom WorkflowStatus name maps to.

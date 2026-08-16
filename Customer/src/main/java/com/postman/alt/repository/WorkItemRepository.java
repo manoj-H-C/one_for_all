@@ -1,7 +1,8 @@
-package com.yourco.platform.persistence.repository;
+package com.postman.alt.repository;
 
-import com.yourco.platform.persistence.entity.WorkItem;
+import com.postman.alt.entity.WorkItem;
 import org.springframework.data.jpa.repository.JpaRepository;
+
 import java.util.List;
 import java.util.UUID;
 

@@ -1,7 +1,8 @@
-package com.yourco.platform.persistence.repository;
+package com.postman.alt.repository;
 
-import com.yourco.platform.persistence.entity.Organization;
+import com.postman.alt.entity.Organization;
 import org.springframework.data.jpa.repository.JpaRepository;
+
 import java.util.UUID;
 
 public interface OrganizationRepository extends JpaRepository<Organization, UUID> {

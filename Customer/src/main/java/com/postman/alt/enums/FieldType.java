@@ -1,4 +1,4 @@
-package com.yourco.platform.domain.enums;
+package com.postman.alt.enums;
 
 /**
  * The set of value types a CustomFieldDefinition can take.

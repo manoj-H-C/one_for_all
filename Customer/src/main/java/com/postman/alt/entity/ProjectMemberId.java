@@ -1,6 +1,7 @@
-package com.yourco.platform.persistence.entity;
+package com.postman.alt.entity;
 
 import jakarta.persistence.Embeddable;
+
 import java.io.Serializable;
 import java.util.Objects;
 import java.util.UUID;

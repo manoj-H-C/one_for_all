@@ -7,11 +7,47 @@
     <groupId>com.postman.alt</groupId>
     <artifactId>jeera_alt</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>jeera_alt</name>
+    <description>Universal work-management platform (Jira-like, industry-agnostic) - parent POM</description>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.1.0</version>
+        <relativePath/>
+    </parent>
+
+    <modules>
+        <module>common-service</module>
+        <module>Customer</module>
+        <module>app</module>
+    </modules>
 
     <properties>
+        <java.version>21</java.version>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-    
+
+    <!-- Centralized internal dependency versions -->
+    <dependencyManagement>
+        <dependencies>
+
+            <dependency>
+                <groupId>com.postman.alt</groupId>
+                <artifactId>common-service</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.postman.alt</groupId>
+                <artifactId>Customer</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
 </project>

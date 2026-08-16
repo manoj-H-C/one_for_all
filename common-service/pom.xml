@@ -10,6 +10,9 @@
     </parent>
 
     <artifactId>common-service</artifactId>
+    <packaging>jar</packaging>
+    <name>common-service</name>
+    <description>Shared DTOs, exceptions and utilities used by every other module</description>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
