@@ -168,3 +168,23 @@ create table attachment (
 );
 
 create index idx_attachment_work_item on attachment (work_item_id);
+
+-- Adds project_invitation: invites someone by email who may not have an
+-- app_user account yet. project_member still requires an existing user -
+-- accepting an invitation (matched by token) is what creates that row.
+
+create table project_invitation (
+                                    id           uuid primary key default gen_random_uuid(),
+                                    project_id   uuid not null references project(id) on delete cascade,
+                                    email        varchar(255) not null,
+                                    role_id      uuid not null references project_role(id),
+                                    invited_by   uuid not null references app_user(id),
+                                    token        varchar(255) not null,
+                                    status       varchar(20) not null check (status in ('PENDING', 'ACCEPTED', 'EXPIRED', 'REVOKED')),
+                                    expires_at   timestamptz not null,
+                                    created_at   timestamptz not null default now(),
+                                    constraint uk_invitation_token unique (token)
+);
+
+create index idx_invitation_project on project_invitation (project_id);
+create index idx_invitation_email on project_invitation (email);
