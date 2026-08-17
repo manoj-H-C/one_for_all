@@ -8,6 +8,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -15,7 +16,9 @@ import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -60,6 +63,9 @@ public class WorkItem {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "custom_fields", columnDefinition = "jsonb", nullable = false)
     private Map<String, Object> customFields = new HashMap<>();
+
+    @OneToMany(mappedBy = "workItem", fetch = FetchType.LAZY)
+    private Set<Attachment> attachments = new HashSet<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();

@@ -2,6 +2,8 @@ package com.postman.alt.entity;
 
 import jakarta.persistence.*;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -29,6 +31,13 @@ public class ProjectRole {
 
     @Column(length = 255)
     private String description;
+
+    // read-only view of this role's granted permissions - for listing/UI
+    // purposes only. Don't route hasPermission() checks through this (it
+    // would hydrate the whole collection); use
+    // ProjectRolePermissionRepository.existsByRoleIdAndPermissionCode instead.
+    @OneToMany(mappedBy = "role", fetch = FetchType.LAZY)
+    private Set<ProjectRolePermission> permissions = new HashSet<>();
 
     protected ProjectRole() {
         // JPA
@@ -66,5 +75,9 @@ public class ProjectRole {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public Set<ProjectRolePermission> getPermissions() {
+        return permissions;
     }
 }
