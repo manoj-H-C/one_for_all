@@ -148,4 +148,8 @@ public class WorkItem {
     public Instant getUpdatedAt() {
         return updatedAt;
     }
+
+    public Set<Attachment> getAttachments() {
+        return attachments;
+    }
 }
