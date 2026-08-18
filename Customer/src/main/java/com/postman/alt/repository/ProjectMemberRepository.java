@@ -10,4 +10,5 @@ import java.util.UUID;
 public interface ProjectMemberRepository extends JpaRepository<ProjectMember, ProjectMemberId> {
     List<ProjectMember> findByProjectId(UUID projectId);
     List<ProjectMember> findByUserId(UUID userId);
+    boolean existsByRoleId(UUID roleId);
 }

@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface WorkflowStatusRepository extends JpaRepository<WorkflowStatus, UUID> {
     List<WorkflowStatus> findByProjectIdOrderBySortOrderAsc(UUID projectId);
+    boolean existsByCategoryId(UUID categoryId);
 }

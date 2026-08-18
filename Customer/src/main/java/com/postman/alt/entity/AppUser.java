@@ -42,6 +42,15 @@ public class AppUser {
     @Column(name = "is_owner", nullable = false)
     private boolean owner = false;
 
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified = false;
+
+    // embedded as a claim in every issued JWT - bumping this invalidates
+    // every token issued before the bump (see AuthServiceImpl.resetPassword),
+    // without needing a token table to check on every request.
+    @Column(name = "token_version", nullable = false)
+    private int tokenVersion = 0;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -90,6 +99,22 @@ public class AppUser {
 
     public void setOwner(boolean owner) {
         this.owner = owner;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(boolean emailVerified) {
+        this.emailVerified = emailVerified;
+    }
+
+    public int getTokenVersion() {
+        return tokenVersion;
+    }
+
+    public void bumpTokenVersion() {
+        this.tokenVersion++;
     }
 
     public Instant getCreatedAt() {
