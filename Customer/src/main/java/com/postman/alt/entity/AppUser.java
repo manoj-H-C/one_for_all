@@ -37,6 +37,11 @@ public class AppUser {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
+    // org-level root account - bypasses project_role_permission entirely.
+    // See ProjectAccessService.hasPermission for the enforcement logic.
+    @Column(name = "is_owner", nullable = false)
+    private boolean owner = false;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -77,6 +82,14 @@ public class AppUser {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public boolean isOwner() {
+        return owner;
+    }
+
+    public void setOwner(boolean owner) {
+        this.owner = owner;
     }
 
     public Instant getCreatedAt() {

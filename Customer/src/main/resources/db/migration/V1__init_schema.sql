@@ -17,6 +17,7 @@ create table app_user (
                           email          varchar(255) not null,
                           name           varchar(255) not null,
                           password_hash  varchar(255) not null,
+                          is_owner       boolean not null default false,
                           created_at     timestamptz  not null default now(),
                           unique (org_id, email)
 );
@@ -43,6 +44,15 @@ create table project_role (
                               description  varchar(255),
                               constraint uk_project_role_name unique (project_id, name)
 );
+
+-- explicit index for "all roles in this project" lookups. Technically the
+-- uk_project_role_name unique constraint above already indexes (project_id,
+-- name) with project_id as the leading column, so Postgres CAN already use
+-- it for a project_id-only filter - this index is here for consistency with
+-- every other project-scoped table below (status_category, workflow_status,
+-- etc.) and to keep the query plan independent of that constraint's shape
+-- in case it's ever changed or dropped.
+create index idx_project_role_project on project_role (project_id);
 
 create table project_member (
                                 project_id  uuid not null references project(id) on delete cascade,
@@ -116,3 +126,65 @@ create table comment (
 );
 
 create index idx_comment_work_item on comment (work_item_id);
+
+-- fixed, app-defined permission catalog. Not user-created - each code maps
+-- to an actual authorization check in code, seeded here so it exists before
+-- any project_role_permission row can reference it.
+create table permission (
+                            code         varchar(60) primary key,
+                            description  varchar(255) not null
+);
+
+insert into permission (code, description) values
+                                               ('WORK_ITEM_CREATE',    'Create new work items'),
+                                               ('WORK_ITEM_EDIT',      'Edit existing work items'),
+                                               ('WORK_ITEM_DELETE',    'Delete work items'),
+                                               ('WORK_ITEM_ASSIGN',    'Assign work items to members'),
+                                               ('COMMENT_CREATE',      'Add comments'),
+                                               ('MEMBER_INVITE',       'Invite new members to the project'),
+                                               ('MEMBER_REMOVE',       'Remove members from the project'),
+                                               ('ROLE_MANAGE',         'Create/edit roles and their permissions'),
+                                               ('WORKFLOW_MANAGE',     'Add/edit workflow statuses'),
+                                               ('CUSTOM_FIELD_MANAGE', 'Add/edit custom field definitions');
+
+-- the user-editable half of the permission model: which permissions belong
+-- to which project-defined role. Account creators build roles by choosing
+-- from the fixed permission catalog above.
+create table project_role_permission (
+                                         role_id          uuid not null references project_role(id) on delete cascade,
+                                         permission_code  varchar(60) not null references permission(code),
+                                         primary key (role_id, permission_code)
+);
+
+create index idx_project_role_permission_code on project_role_permission (permission_code);
+
+create table attachment (
+                            id            uuid primary key default gen_random_uuid(),
+                            work_item_id  uuid not null references work_item(id) on delete cascade,
+                            file_url      varchar(1000) not null,
+                            file_name     varchar(255),
+                            uploaded_by   uuid not null references app_user(id),
+                            created_at    timestamptz not null default now()
+);
+
+create index idx_attachment_work_item on attachment (work_item_id);
+
+-- Adds project_invitation: invites someone by email who may not have an
+-- app_user account yet. project_member still requires an existing user -
+-- accepting an invitation (matched by token) is what creates that row.
+
+create table project_invitation (
+                                    id           uuid primary key default gen_random_uuid(),
+                                    project_id   uuid not null references project(id) on delete cascade,
+                                    email        varchar(255) not null,
+                                    role_id      uuid not null references project_role(id),
+                                    invited_by   uuid not null references app_user(id),
+                                    token        varchar(255) not null,
+                                    status       varchar(20) not null check (status in ('PENDING', 'ACCEPTED', 'EXPIRED', 'REVOKED')),
+                                    expires_at   timestamptz not null,
+                                    created_at   timestamptz not null default now(),
+                                    constraint uk_invitation_token unique (token)
+);
+
+create index idx_invitation_project on project_invitation (project_id);
+create index idx_invitation_email on project_invitation (email);
