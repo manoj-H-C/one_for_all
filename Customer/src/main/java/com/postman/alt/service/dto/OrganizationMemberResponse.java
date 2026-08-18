@@ -3,14 +3,13 @@ package com.postman.alt.service.dto;
 import java.time.Instant;
 import java.util.UUID;
 
-public record UserResponse(
+public record OrganizationMemberResponse(
         UUID id,
-        UUID orgId,
-        String email,
         String name,
+        String email,
         boolean owner,
         boolean canCreateProjects,
-        boolean emailVerified,
+        boolean canManageMembers,
         Instant createdAt
 ) {
 }

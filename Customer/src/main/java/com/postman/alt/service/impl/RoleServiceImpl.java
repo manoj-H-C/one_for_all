@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -56,9 +57,23 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<RoleResponse> list(UUID projectId, UUID requesterId) {
         projectAccessService.requireMember(projectId, requesterId);
-        return projectRoleRepository.findByProjectId(projectId).stream().map(this::toResponse).toList();
+
+        List<ProjectRole> roles = projectRoleRepository.findByProjectId(projectId);
+        Map<UUID, Set<String>> permissionCodesByRole = projectRolePermissionRepository.findByRole_ProjectId(projectId).stream()
+                .collect(Collectors.groupingBy(
+                        rp -> rp.getRole().getId(),
+                        Collectors.mapping(rp -> rp.getPermission().getCode(), Collectors.toSet())
+                ));
+
+        return roles.stream()
+                .map(role -> new RoleResponse(
+                        role.getId(), role.getProject().getId(), role.getName(), role.getDescription(),
+                        permissionCodesByRole.getOrDefault(role.getId(), Set.of())
+                ))
+                .toList();
     }
 
     @Override

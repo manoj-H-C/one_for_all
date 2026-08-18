@@ -44,6 +44,7 @@ public class WorkItemLinkServiceImpl implements WorkItemLinkService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<WorkItemLinkResponse> list(UUID workItemId, UUID requesterId) {
         WorkItem item = getWorkItem(workItemId);
         projectAccessService.requireMember(item.getProject().getId(), requesterId);
@@ -97,7 +98,7 @@ public class WorkItemLinkServiceImpl implements WorkItemLinkService {
     }
 
     private WorkItem getWorkItem(UUID id) {
-        return workItemRepository.findById(id)
+        return workItemRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResourceNotFoundException("WorkItem", id));
     }
 

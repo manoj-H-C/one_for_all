@@ -4,15 +4,19 @@ import com.postman.alt.service.dto.WorkItemActivityResponse;
 import com.postman.alt.service.dto.WorkItemCreateRequest;
 import com.postman.alt.service.dto.WorkItemResponse;
 import com.postman.alt.service.dto.WorkItemUpdateRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
-import java.util.List;
 import java.util.UUID;
 
 public interface WorkItemService {
 
     WorkItemResponse create(UUID projectId, UUID reporterId, WorkItemCreateRequest request);
 
-    List<WorkItemResponse> list(UUID projectId, UUID requesterId, UUID statusId, UUID assigneeId);
+    Page<WorkItemResponse> list(
+            UUID projectId, UUID requesterId, UUID statusId, UUID assigneeId,
+            String priority, String q, Pageable pageable
+    );
 
     WorkItemResponse get(UUID id, UUID requesterId);
 
@@ -24,5 +28,5 @@ public interface WorkItemService {
 
     void delete(UUID id, UUID actorId);
 
-    List<WorkItemActivityResponse> getActivity(UUID id, UUID requesterId);
+    Page<WorkItemActivityResponse> getActivity(UUID id, UUID requesterId, Pageable pageable);
 }

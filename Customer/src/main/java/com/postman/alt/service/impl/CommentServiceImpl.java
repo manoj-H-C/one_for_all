@@ -40,6 +40,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<CommentResponse> list(UUID workItemId, UUID requesterId) {
         WorkItem item = getWorkItem(workItemId);
         projectAccessService.requireMember(item.getProject().getId(), requesterId);
@@ -88,7 +89,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     private WorkItem getWorkItem(UUID id) {
-        return workItemRepository.findById(id)
+        return workItemRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResourceNotFoundException("WorkItem", id));
     }
 

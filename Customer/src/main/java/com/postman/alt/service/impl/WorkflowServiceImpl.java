@@ -93,6 +93,7 @@ public class WorkflowServiceImpl implements WorkflowService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<WorkflowStatusResponse> listStatuses(UUID projectId, UUID requesterId) {
         projectAccessService.requireMember(projectId, requesterId);
         return workflowStatusRepository.findByProjectIdOrderBySortOrderAsc(projectId).stream()
@@ -138,7 +139,7 @@ public class WorkflowServiceImpl implements WorkflowService {
         projectAccessService.requirePermission(projectId, requesterId, WORKFLOW_MANAGE);
         WorkflowStatus status = getStatus(projectId, statusId);
 
-        if (!workItemRepository.findByProjectIdAndStatusId(projectId, statusId).isEmpty()) {
+        if (!workItemRepository.findByProjectIdAndStatusIdAndDeletedAtIsNull(projectId, statusId).isEmpty()) {
             throw new ConflictException("Status is still in use by work items");
         }
 

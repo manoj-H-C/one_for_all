@@ -1,13 +1,14 @@
 package com.postman.alt.service;
 
 import com.postman.alt.service.dto.NotificationResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
-import java.util.List;
 import java.util.UUID;
 
 public interface NotificationService {
 
-    List<NotificationResponse> listMine(UUID userId, boolean unreadOnly);
+    Page<NotificationResponse> listMine(UUID userId, boolean unreadOnly, Pageable pageable);
 
     void markRead(UUID notificationId, UUID userId);
 

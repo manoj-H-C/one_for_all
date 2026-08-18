@@ -94,6 +94,7 @@ public class InvitationServiceImpl implements InvitationService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<InvitationResponse> list(UUID projectId, UUID requesterId) {
         projectAccessService.requirePermission(projectId, requesterId, MEMBER_INVITE);
         return projectInvitationRepository.findByProjectIdAndStatus(projectId, InvitationStatus.PENDING).stream()

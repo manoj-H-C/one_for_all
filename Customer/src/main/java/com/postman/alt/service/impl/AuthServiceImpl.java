@@ -2,13 +2,16 @@ package com.postman.alt.service.impl;
 
 import com.postman.alt.entity.AppUser;
 import com.postman.alt.entity.Organization;
+import com.postman.alt.entity.OrganizationInvitation;
 import com.postman.alt.entity.UserToken;
+import com.postman.alt.enums.InvitationStatus;
 import com.postman.alt.enums.TokenPurpose;
 import com.postman.alt.exception.BadRequestException;
 import com.postman.alt.exception.ConflictException;
 import com.postman.alt.exception.ResourceNotFoundException;
 import com.postman.alt.exception.UnauthorizedException;
 import com.postman.alt.repository.AppUserRepository;
+import com.postman.alt.repository.OrganizationInvitationRepository;
 import com.postman.alt.repository.OrganizationRepository;
 import com.postman.alt.repository.UserTokenRepository;
 import com.postman.alt.security.JwtService;
@@ -16,11 +19,13 @@ import com.postman.alt.service.AuthService;
 import com.postman.alt.service.dto.AuthResponse;
 import com.postman.alt.service.dto.ForgotPasswordRequest;
 import com.postman.alt.service.dto.LoginRequest;
+import com.postman.alt.service.dto.OrganizationInvitationAcceptRequest;
 import com.postman.alt.service.dto.RefreshRequest;
 import com.postman.alt.service.dto.RegisterRequest;
 import com.postman.alt.service.dto.ResetPasswordRequest;
 import com.postman.alt.service.dto.UserResponse;
 import com.postman.alt.service.dto.VerifyEmailRequest;
+import com.postman.alt.service.support.AuthRateLimiter;
 import com.postman.alt.service.support.TokenGenerator;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -44,19 +49,25 @@ public class AuthServiceImpl implements AuthService {
     private final UserTokenRepository userTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final AuthRateLimiter authRateLimiter;
+    private final OrganizationInvitationRepository organizationInvitationRepository;
 
     public AuthServiceImpl(
             OrganizationRepository organizationRepository,
             AppUserRepository appUserRepository,
             UserTokenRepository userTokenRepository,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService
+            JwtService jwtService,
+            AuthRateLimiter authRateLimiter,
+            OrganizationInvitationRepository organizationInvitationRepository
     ) {
         this.organizationRepository = organizationRepository;
         this.appUserRepository = appUserRepository;
         this.userTokenRepository = userTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.authRateLimiter = authRateLimiter;
+        this.organizationInvitationRepository = organizationInvitationRepository;
     }
 
     @Override
@@ -82,14 +93,16 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse login(LoginRequest request) {
-        AppUser user = appUserRepository.findByEmail(request.email())
-                .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
+        authRateLimiter.assertLoginAllowed(request.email());
 
-        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+        var userOpt = appUserRepository.findByEmail(request.email());
+        if (userOpt.isEmpty() || !passwordEncoder.matches(request.password(), userOpt.get().getPasswordHash())) {
+            authRateLimiter.recordLoginFailure(request.email());
             throw new UnauthorizedException("Invalid email or password");
         }
 
-        return issueTokenPair(user);
+        authRateLimiter.recordLoginSuccess(request.email());
+        return issueTokenPair(userOpt.get());
     }
 
     @Override
@@ -140,6 +153,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void forgotPassword(ForgotPasswordRequest request) {
+        authRateLimiter.assertPasswordResetAllowed(request.email());
         appUserRepository.findByEmail(request.email()).ifPresent(user -> {
             UserToken token = issueToken(user, TokenPurpose.PASSWORD_RESET, 30);
             // stand-in for actually emailing the link until a real provider
@@ -175,6 +189,36 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("Email is already verified");
         }
         issueVerificationToken(user, 60 * 24);
+    }
+
+    @Override
+    @Transactional
+    public AuthResponse acceptOrganizationInvitation(String token, OrganizationInvitationAcceptRequest request) {
+        OrganizationInvitation invitation = organizationInvitationRepository.findByToken(token)
+                .orElseThrow(() -> new BadRequestException("Invalid or expired invitation"));
+
+        if (invitation.getStatus() != InvitationStatus.PENDING || invitation.getExpiresAt().isBefore(Instant.now())) {
+            throw new BadRequestException("Invalid or expired invitation");
+        }
+        // same global-uniqueness rule as register() - app_user.org_id is a
+        // single fixed reference, so an email that's registered elsewhere
+        // can't also be created under this org.
+        if (appUserRepository.findByEmail(invitation.getEmail()).isPresent()) {
+            throw new ConflictException("An account with this email already exists");
+        }
+
+        AppUser user = new AppUser(
+                invitation.getOrganization(), invitation.getEmail(), request.name(),
+                passwordEncoder.encode(request.password())
+        );
+        user.setCanCreateProjects(invitation.isCanCreateProjects());
+        user.setCanManageMembers(invitation.isCanManageMembers());
+        user = appUserRepository.save(user);
+
+        invitation.setStatus(InvitationStatus.ACCEPTED);
+        issueVerificationToken(user, 60 * 24);
+
+        return issueTokenPair(user);
     }
 
     private AuthResponse issueTokenPair(AppUser user) {
@@ -215,6 +259,7 @@ public class AuthServiceImpl implements AuthService {
                 user.getEmail(),
                 user.getName(),
                 user.isOwner(),
+                user.isCanCreateProjects(),
                 user.isEmailVerified(),
                 user.getCreatedAt()
         );

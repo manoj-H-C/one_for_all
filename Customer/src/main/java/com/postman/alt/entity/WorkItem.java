@@ -87,6 +87,12 @@ public class WorkItem {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt = Instant.now();
 
+    // null = active. Set on delete instead of removing the row, so its
+    // comments/attachments/links/activity history survive a delete and the
+    // action is recoverable at the DB level instead of destructive.
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
     protected WorkItem() {
         // JPA
     }
@@ -181,5 +187,13 @@ public class WorkItem {
 
     public Set<Attachment> getAttachments() {
         return attachments;
+    }
+
+    public Instant getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void softDelete() {
+        this.deletedAt = Instant.now();
     }
 }

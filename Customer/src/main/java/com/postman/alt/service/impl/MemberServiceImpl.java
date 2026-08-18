@@ -40,6 +40,7 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<MemberResponse> list(UUID projectId, UUID requesterId) {
         projectAccessService.requireMember(projectId, requesterId);
         return projectMemberRepository.findByProjectId(projectId).stream().map(this::toResponse).toList();

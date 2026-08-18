@@ -51,6 +51,12 @@ public class Project {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
+    // null = active. Set on delete instead of removing the row, so a
+    // project's work items/roles/history aren't destroyed by an accidental
+    // or malicious delete - see WorkItem.deletedAt for the same pattern.
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
     protected Project() {
         // JPA
     }
@@ -104,5 +110,13 @@ public class Project {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Instant getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void softDelete() {
+        this.deletedAt = Instant.now();
     }
 }

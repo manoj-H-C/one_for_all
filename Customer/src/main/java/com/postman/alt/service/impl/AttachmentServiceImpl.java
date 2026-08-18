@@ -42,6 +42,7 @@ public class AttachmentServiceImpl implements AttachmentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<AttachmentResponse> list(UUID workItemId, UUID requesterId) {
         WorkItem item = getWorkItem(workItemId);
         projectAccessService.requireMember(item.getProject().getId(), requesterId);
@@ -73,7 +74,7 @@ public class AttachmentServiceImpl implements AttachmentService {
     }
 
     private WorkItem getWorkItem(UUID id) {
-        return workItemRepository.findById(id)
+        return workItemRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResourceNotFoundException("WorkItem", id));
     }
 

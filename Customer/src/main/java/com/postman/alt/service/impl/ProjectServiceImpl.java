@@ -20,6 +20,7 @@ import com.postman.alt.repository.ProjectRolePermissionRepository;
 import com.postman.alt.repository.ProjectRoleRepository;
 import com.postman.alt.repository.StatusCategoryRepository;
 import com.postman.alt.repository.WorkflowStatusRepository;
+import com.postman.alt.service.ProjectAccessService;
 import com.postman.alt.service.ProjectService;
 import com.postman.alt.service.dto.ProjectCreateRequest;
 import com.postman.alt.service.dto.ProjectResponse;
@@ -33,6 +34,8 @@ import java.util.UUID;
 @Service
 public class ProjectServiceImpl implements ProjectService {
 
+    private static final String PROJECT_MANAGE = "PROJECT_MANAGE";
+
     private final ProjectRepository projectRepository;
     private final AppUserRepository appUserRepository;
     private final ProjectRoleRepository projectRoleRepository;
@@ -41,6 +44,7 @@ public class ProjectServiceImpl implements ProjectService {
     private final ProjectRolePermissionRepository projectRolePermissionRepository;
     private final StatusCategoryRepository statusCategoryRepository;
     private final WorkflowStatusRepository workflowStatusRepository;
+    private final ProjectAccessService projectAccessService;
 
     public ProjectServiceImpl(
             ProjectRepository projectRepository,
@@ -50,7 +54,8 @@ public class ProjectServiceImpl implements ProjectService {
             PermissionRepository permissionRepository,
             ProjectRolePermissionRepository projectRolePermissionRepository,
             StatusCategoryRepository statusCategoryRepository,
-            WorkflowStatusRepository workflowStatusRepository
+            WorkflowStatusRepository workflowStatusRepository,
+            ProjectAccessService projectAccessService
     ) {
         this.projectRepository = projectRepository;
         this.appUserRepository = appUserRepository;
@@ -60,6 +65,7 @@ public class ProjectServiceImpl implements ProjectService {
         this.projectRolePermissionRepository = projectRolePermissionRepository;
         this.statusCategoryRepository = statusCategoryRepository;
         this.workflowStatusRepository = workflowStatusRepository;
+        this.projectAccessService = projectAccessService;
     }
 
     // Creates the project plus everything it needs to be immediately usable:
@@ -72,9 +78,12 @@ public class ProjectServiceImpl implements ProjectService {
     @Transactional
     public ProjectResponse create(UUID requesterId, ProjectCreateRequest request) {
         AppUser requester = getUser(requesterId);
+        if (!requester.isOwner() && !requester.isCanCreateProjects()) {
+            throw new ForbiddenException("You don't have permission to create projects in this organization");
+        }
         Organization org = requester.getOrganization();
 
-        if (projectRepository.existsByOrganizationIdAndKey(org.getId(), request.key())) {
+        if (projectRepository.existsByOrganizationIdAndKeyAndDeletedAtIsNull(org.getId(), request.key())) {
             throw new ConflictException("A project with key '" + request.key() + "' already exists in this organization");
         }
 
@@ -99,7 +108,7 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     public List<ProjectResponse> listForOrg(UUID requesterId) {
         AppUser requester = getUser(requesterId);
-        return projectRepository.findByOrganizationId(requester.getOrganization().getId())
+        return projectRepository.findByOrganizationIdAndDeletedAtIsNull(requester.getOrganization().getId())
                 .stream().map(this::toResponse).toList();
     }
 
@@ -114,7 +123,7 @@ public class ProjectServiceImpl implements ProjectService {
     @Transactional
     public ProjectResponse update(UUID projectId, UUID requesterId, ProjectUpdateRequest request) {
         Project project = getProject(projectId);
-        requireOrgOwner(project, requesterId);
+        projectAccessService.requirePermission(projectId, requesterId, PROJECT_MANAGE);
 
         if (request.name() != null) {
             project.setName(request.name());
@@ -133,8 +142,8 @@ public class ProjectServiceImpl implements ProjectService {
     @Transactional
     public void delete(UUID projectId, UUID requesterId) {
         Project project = getProject(projectId);
-        requireOrgOwner(project, requesterId);
-        projectRepository.delete(project);
+        projectAccessService.requirePermission(projectId, requesterId, PROJECT_MANAGE);
+        project.softDelete();
     }
 
     private void requireSameOrg(Project project, UUID requesterId) {
@@ -144,18 +153,8 @@ public class ProjectServiceImpl implements ProjectService {
         }
     }
 
-    // there is no PROJECT_MANAGE permission code in the catalog yet, so
-    // project-level admin actions (rename, delete) are restricted to the org
-    // owner rather than routed through ProjectAccessService.requirePermission.
-    private void requireOrgOwner(Project project, UUID requesterId) {
-        AppUser requester = getUser(requesterId);
-        if (!requester.getOrganization().getId().equals(project.getOrganization().getId()) || !requester.isOwner()) {
-            throw new ForbiddenException("Only the organization owner can manage this project");
-        }
-    }
-
     private Project getProject(UUID id) {
-        return projectRepository.findById(id)
+        return projectRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Project", id));
     }
 

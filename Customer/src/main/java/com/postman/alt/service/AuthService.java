@@ -3,6 +3,7 @@ package com.postman.alt.service;
 import com.postman.alt.service.dto.AuthResponse;
 import com.postman.alt.service.dto.ForgotPasswordRequest;
 import com.postman.alt.service.dto.LoginRequest;
+import com.postman.alt.service.dto.OrganizationInvitationAcceptRequest;
 import com.postman.alt.service.dto.RefreshRequest;
 import com.postman.alt.service.dto.RegisterRequest;
 import com.postman.alt.service.dto.ResetPasswordRequest;
@@ -52,4 +53,10 @@ public interface AuthService {
     void verifyEmail(VerifyEmailRequest request);
 
     void resendVerification(UUID userId);
+
+    // creates a brand-new AppUser under the INVITING org (not a fresh org
+    // of its own, unlike register()) and immediately logs them in. Fails if
+    // the invitation is gone/expired/already used, or if this email has
+    // since registered elsewhere - see OrganizationInvitation's javadoc.
+    AuthResponse acceptOrganizationInvitation(String token, OrganizationInvitationAcceptRequest request);
 }

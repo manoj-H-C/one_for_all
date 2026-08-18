@@ -42,6 +42,22 @@ public class AppUser {
     @Column(name = "is_owner", nullable = false)
     private boolean owner = false;
 
+    // narrower than `owner` - lets the owner delegate just "can create
+    // projects" to a trusted member, without handing them the owner's full
+    // bypass of every permission check on every project (see
+    // ProjectAccessServiceImpl.requirePermission). Owners can always create
+    // projects regardless of this flag - see ProjectServiceImpl.create.
+    @Column(name = "can_create_projects", nullable = false)
+    private boolean canCreateProjects = false;
+
+    // the org's delegated "admin" bit: can invite new users into the org and
+    // grant/revoke canCreateProjects on other members. Deliberately can't
+    // grant this flag itself to anyone else - only the owner mints admins,
+    // so privilege can't chain outward uncontrolled. See
+    // OrganizationServiceImpl.setMemberManagementAccess.
+    @Column(name = "can_manage_members", nullable = false)
+    private boolean canManageMembers = false;
+
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified = false;
 
@@ -99,6 +115,22 @@ public class AppUser {
 
     public void setOwner(boolean owner) {
         this.owner = owner;
+    }
+
+    public boolean isCanCreateProjects() {
+        return canCreateProjects;
+    }
+
+    public void setCanCreateProjects(boolean canCreateProjects) {
+        this.canCreateProjects = canCreateProjects;
+    }
+
+    public boolean isCanManageMembers() {
+        return canManageMembers;
+    }
+
+    public void setCanManageMembers(boolean canManageMembers) {
+        this.canManageMembers = canManageMembers;
     }
 
     public boolean isEmailVerified() {

@@ -9,6 +9,10 @@ import com.postman.alt.service.dto.WorkItemResponse;
 import com.postman.alt.service.dto.WorkItemStatusUpdateRequest;
 import com.postman.alt.service.dto.WorkItemUpdateRequest;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -21,7 +25,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -45,12 +48,15 @@ public class WorkItemController {
     }
 
     @GetMapping("/api/projects/{projectId}/work-items")
-    public List<WorkItemResponse> list(
+    public Page<WorkItemResponse> list(
             @PathVariable UUID projectId,
             @RequestParam(required = false) UUID statusId,
-            @RequestParam(required = false) UUID assigneeId
+            @RequestParam(required = false) UUID assigneeId,
+            @RequestParam(required = false) String priority,
+            @RequestParam(required = false) String q,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        return workItemService.list(projectId, CurrentUser.id(), statusId, assigneeId);
+        return workItemService.list(projectId, CurrentUser.id(), statusId, assigneeId, priority, q, pageable);
     }
 
     @GetMapping("/api/work-items/{id}")
@@ -80,7 +86,10 @@ public class WorkItemController {
     }
 
     @GetMapping("/api/work-items/{id}/activity")
-    public List<WorkItemActivityResponse> activity(@PathVariable UUID id) {
-        return workItemService.getActivity(id, CurrentUser.id());
+    public Page<WorkItemActivityResponse> activity(
+            @PathVariable UUID id,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return workItemService.getActivity(id, CurrentUser.id(), pageable);
     }
 }

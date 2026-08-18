@@ -6,10 +6,11 @@ import com.postman.alt.exception.ResourceNotFoundException;
 import com.postman.alt.repository.NotificationRepository;
 import com.postman.alt.service.NotificationService;
 import com.postman.alt.service.dto.NotificationResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -22,11 +23,12 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public List<NotificationResponse> listMine(UUID userId, boolean unreadOnly) {
-        List<Notification> notifications = unreadOnly
-                ? notificationRepository.findByRecipientIdAndReadAtIsNull(userId)
-                : notificationRepository.findByRecipientIdOrderByCreatedAtDesc(userId);
-        return notifications.stream().map(this::toResponse).toList();
+    @Transactional(readOnly = true)
+    public Page<NotificationResponse> listMine(UUID userId, boolean unreadOnly, Pageable pageable) {
+        Page<Notification> notifications = unreadOnly
+                ? notificationRepository.findByRecipientIdAndReadAtIsNull(userId, pageable)
+                : notificationRepository.findByRecipientIdOrderByCreatedAtDesc(userId, pageable);
+        return notifications.map(this::toResponse);
     }
 
     @Override
