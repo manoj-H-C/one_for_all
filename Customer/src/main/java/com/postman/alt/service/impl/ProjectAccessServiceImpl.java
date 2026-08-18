@@ -37,16 +37,18 @@ public class ProjectAccessServiceImpl implements ProjectAccessService {
 
     @Override
     public ProjectMember requireMember(UUID projectId, UUID userId) {
-        ProjectMember member = projectMemberRepository.findById(new ProjectMemberId(projectId, userId))
-                .orElseThrow(() -> new ForbiddenException("Not a member of this project"));
         // every project-scoped service (work items, comments, roles, ...)
         // routes access checks through here, so this is the one place a
         // soft-deleted project needs to be excluded to lock the whole
-        // project down at once.
-        if (member.getProject().getDeletedAt() != null) {
-            throw new ResourceNotFoundException("Project", projectId);
-        }
-        return member;
+        // project down at once. The deletedAt check is folded into the
+        // query (not a separate member.getProject().getDeletedAt() call)
+        // so this works whether or not the caller wrapped itself in
+        // @Transactional - a lazy Project proxy touched outside a session
+        // throws LazyInitializationException, a WHERE clause doesn't.
+        // "deleted" and "never a member" are deliberately indistinguishable
+        // to the caller - both are just "not a member of this project".
+        return projectMemberRepository.findByIdAndProject_DeletedAtIsNull(new ProjectMemberId(projectId, userId))
+                .orElseThrow(() -> new ForbiddenException("Not a member of this project"));
     }
 
     @Override

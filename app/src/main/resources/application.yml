@@ -50,9 +50,9 @@ app:
     key: ${ENCRYPTION_KEY:7iAHpCHn28juC0XcpwhyXw5/Xe4J5FecPaRLRXLOXzo=}
     # set to false locally to hit the API with plain JSON (e.g. from Postman)
     # without needing a client-side AES implementation.
-    enabled: ${ENCRYPTION_ENABLED:true}
+    enabled: ${ENCRYPTION_ENABLED:false}
   cors:
     # comma-separated list of origins a browser frontend is allowed to call
     # this API from. Override with CORS_ALLOWED_ORIGINS in every environment
     # that isn't local dev.
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,http://localhost:4200}

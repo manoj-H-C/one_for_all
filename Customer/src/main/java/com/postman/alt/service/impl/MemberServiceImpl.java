@@ -1,13 +1,20 @@
 package com.postman.alt.service.impl;
 
+import com.postman.alt.entity.AppUser;
+import com.postman.alt.entity.Project;
 import com.postman.alt.entity.ProjectMember;
 import com.postman.alt.entity.ProjectMemberId;
 import com.postman.alt.entity.ProjectRole;
+import com.postman.alt.exception.BadRequestException;
+import com.postman.alt.exception.ConflictException;
 import com.postman.alt.exception.ResourceNotFoundException;
+import com.postman.alt.repository.AppUserRepository;
 import com.postman.alt.repository.ProjectMemberRepository;
+import com.postman.alt.repository.ProjectRepository;
 import com.postman.alt.repository.ProjectRoleRepository;
 import com.postman.alt.service.MemberService;
 import com.postman.alt.service.ProjectAccessService;
+import com.postman.alt.service.dto.MemberAddRequest;
 import com.postman.alt.service.dto.MemberResponse;
 import com.postman.alt.service.dto.UpdateMemberRoleRequest;
 import org.springframework.stereotype.Service;
@@ -27,15 +34,21 @@ public class MemberServiceImpl implements MemberService {
 
     private final ProjectMemberRepository projectMemberRepository;
     private final ProjectRoleRepository projectRoleRepository;
+    private final ProjectRepository projectRepository;
+    private final AppUserRepository appUserRepository;
     private final ProjectAccessService projectAccessService;
 
     public MemberServiceImpl(
             ProjectMemberRepository projectMemberRepository,
             ProjectRoleRepository projectRoleRepository,
+            ProjectRepository projectRepository,
+            AppUserRepository appUserRepository,
             ProjectAccessService projectAccessService
     ) {
         this.projectMemberRepository = projectMemberRepository;
         this.projectRoleRepository = projectRoleRepository;
+        this.projectRepository = projectRepository;
+        this.appUserRepository = appUserRepository;
         this.projectAccessService = projectAccessService;
     }
 
@@ -44,6 +57,34 @@ public class MemberServiceImpl implements MemberService {
     public List<MemberResponse> list(UUID projectId, UUID requesterId) {
         projectAccessService.requireMember(projectId, requesterId);
         return projectMemberRepository.findByProjectId(projectId).stream().map(this::toResponse).toList();
+    }
+
+    @Override
+    @Transactional
+    public MemberResponse add(UUID projectId, UUID requesterId, MemberAddRequest request) {
+        projectAccessService.requirePermission(projectId, requesterId, MEMBER_INVITE);
+
+        Project project = projectRepository.findByIdAndDeletedAtIsNull(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
+
+        AppUser user = appUserRepository.findById(request.userId())
+                .orElseThrow(() -> new ResourceNotFoundException("AppUser", request.userId()));
+        if (!user.getOrganization().getId().equals(project.getOrganization().getId())) {
+            throw new BadRequestException("User does not belong to this organization");
+        }
+
+        ProjectRole role = projectRoleRepository.findById(request.roleId())
+                .orElseThrow(() -> new ResourceNotFoundException("ProjectRole", request.roleId()));
+        if (!role.getProject().getId().equals(projectId)) {
+            throw new ResourceNotFoundException("ProjectRole", request.roleId());
+        }
+
+        if (projectMemberRepository.findById(new ProjectMemberId(projectId, request.userId())).isPresent()) {
+            throw new ConflictException("Already a member of this project");
+        }
+
+        ProjectMember member = projectMemberRepository.save(new ProjectMember(project, user, role));
+        return toResponse(member);
     }
 
     @Override

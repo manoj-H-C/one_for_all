@@ -260,6 +260,7 @@ public class AuthServiceImpl implements AuthService {
                 user.getName(),
                 user.isOwner(),
                 user.isCanCreateProjects(),
+                user.isCanManageMembers(),
                 user.isEmailVerified(),
                 user.getCreatedAt()
         );

@@ -10,6 +10,7 @@ public record UserResponse(
         String name,
         boolean owner,
         boolean canCreateProjects,
+        boolean canManageMembers,
         boolean emailVerified,
         Instant createdAt
 ) {
