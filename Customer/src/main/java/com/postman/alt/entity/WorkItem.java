@@ -1,7 +1,10 @@
 package com.postman.alt.entity;
 
+import com.postman.alt.enums.Priority;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -15,6 +18,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -57,6 +61,16 @@ public class WorkItem {
 
     @Column(columnDefinition = "text")
     private String description;
+
+    // native columns rather than custom fields because every industry
+    // template needs them, so leaving them to custom_fields would mean
+    // redefining the same field over and over per template.
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Priority priority = Priority.MEDIUM;
+
+    @Column(name = "due_date")
+    private LocalDate dueDate;
 
     // arbitrary per-project data, keyed by CustomFieldDefinition.name.
     // e.g. {"voltage": "240V", "permit_number": "EL-2026-0143"}
@@ -131,6 +145,22 @@ public class WorkItem {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public Priority getPriority() {
+        return priority;
+    }
+
+    public void setPriority(Priority priority) {
+        this.priority = priority;
+    }
+
+    public LocalDate getDueDate() {
+        return dueDate;
+    }
+
+    public void setDueDate(LocalDate dueDate) {
+        this.dueDate = dueDate;
     }
 
     public Map<String, Object> getCustomFields() {
