@@ -4,7 +4,8 @@
       <h1 class="text-base font-bold leading-tight text-slate-900">Board</h1>
       <p class="text-xs leading-tight text-slate-500">
         @if (!loading()) {
-          {{ totalItemCount() }} work item{{ totalItemCount() === 1 ? '' : 's' }}
+          {{ totalItemCount() }}
+          {{ totalItemCount() === 1 ? currentProjectStore.itemLabelSingular().toLowerCase() : currentProjectStore.itemLabelPlural().toLowerCase() }}
           @if (activeFilterCount() > 0 || filterQ()) {
             <span class="text-slate-400">· filtered</span>
           }
@@ -122,7 +123,7 @@
     @if (canCreate()) {
       <button type="button" class="btn-primary ml-auto" (click)="createOpen.set(true)">
         <app-icon name="plus" [size]="17" />
-        New work item
+        New {{ currentProjectStore.itemLabelSingular().toLowerCase() }}
       </button>
     }
   </div>
@@ -140,7 +141,11 @@
     </div>
   } @else if (view() === 'board') {
     @if (sortedStatuses().length === 0) {
-      <app-empty-state icon="🔀" title="No workflow statuses yet" description="Set up your workflow in project settings before creating work items." />
+      <app-empty-state
+        icon="🔀"
+        title="No workflow statuses yet"
+        [description]="'Set up your workflow in project settings before creating ' + currentProjectStore.itemLabelPlural().toLowerCase() + '.'"
+      />
     } @else {
       <!-- Jira-style board: columns stretch to match the tallest one (no
            per-column scrollbar), and the whole page scrolls normally when
@@ -216,7 +221,11 @@
           } @empty {
             <tr>
               <td [attr.colspan]="sprints().length > 0 ? 6 : 5" class="px-4 py-12">
-                <app-empty-state icon="🔍" title="No work items match these filters" description="Try adjusting or clearing your filters." />
+                <app-empty-state
+                  icon="🔍"
+                  [title]="'No ' + currentProjectStore.itemLabelPlural().toLowerCase() + ' match these filters'"
+                  description="Try adjusting or clearing your filters."
+                />
               </td>
             </tr>
           }

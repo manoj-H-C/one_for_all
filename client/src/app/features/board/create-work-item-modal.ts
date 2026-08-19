@@ -8,6 +8,7 @@ import { SprintResponse } from '../../core/models/sprint.model';
 import { WorkItemResponse } from '../../core/models/work-item.model';
 import { WorkItemService } from '../../core/services/work-item.service';
 import { ApiError } from '../../core/models/common.model';
+import { CurrentProjectStore } from '../../core/state/current-project.store';
 import { ModalComponent } from '../../shared/ui/modal';
 import { CustomFieldsFormComponent } from '../../shared/ui/custom-fields-form';
 
@@ -15,7 +16,7 @@ import { CustomFieldsFormComponent } from '../../shared/ui/custom-fields-form';
   selector: 'app-create-work-item-modal',
   imports: [FormsModule, ModalComponent, CustomFieldsFormComponent],
   template: `
-    <app-modal [open]="open()" title="New work item" [width]="560" (closed)="close()">
+    <app-modal [open]="open()" [title]="modalTitle()" [width]="560" (closed)="close()">
       <form (ngSubmit)="submit()" class="flex flex-col gap-4">
         <div>
           <label class="label" for="title">Title</label>
@@ -103,7 +104,7 @@ import { CustomFieldsFormComponent } from '../../shared/ui/custom-fields-form';
         <div class="mt-2 flex justify-end gap-2">
           <button type="button" class="btn-secondary" (click)="close()">Cancel</button>
           <button type="submit" class="btn-primary" [disabled]="!title().trim() || submitting()">
-            {{ submitting() ? 'Creating…' : 'Create work item' }}
+            {{ submitting() ? 'Creating…' : 'Create ' + currentProjectStore.itemLabelSingular().toLowerCase() }}
           </button>
         </div>
       </form>
@@ -112,6 +113,9 @@ import { CustomFieldsFormComponent } from '../../shared/ui/custom-fields-form';
 })
 export class CreateWorkItemModalComponent {
   private readonly workItemService = inject(WorkItemService);
+
+  readonly currentProjectStore = inject(CurrentProjectStore);
+  protected readonly modalTitle = computed(() => `New ${this.currentProjectStore.itemLabelSingular().toLowerCase()}`);
 
   readonly open = input.required<boolean>();
   readonly projectId = input.required<string>();

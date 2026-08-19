@@ -26,7 +26,16 @@ export type IconName =
   | 'calendar'
   | 'filter'
   | 'trash'
-  | 'grip';
+  | 'grip'
+  | 'text'
+  | 'hash'
+  | 'toggle'
+  | 'list'
+  | 'photo'
+  | 'pin'
+  | 'edit'
+  | 'at'
+  | 'message';
 
 /** Inline Heroicons-style outline icons (24x24, stroke-based) - no external asset requests, no emoji. */
 @Component({
@@ -149,6 +158,42 @@ export type IconName =
           <circle cx="15" cy="6" r="1.3" fill="currentColor" stroke="none" />
           <circle cx="15" cy="12" r="1.3" fill="currentColor" stroke="none" />
           <circle cx="15" cy="18" r="1.3" fill="currentColor" stroke="none" />
+        }
+        @case ('text') {
+          <path d="M4.5 6.5h15M4.5 12h15M4.5 17.5h9.5" />
+        }
+        @case ('hash') {
+          <path d="M9.5 3.5L7.5 20.5M16.5 3.5L14.5 20.5M4 8.5h16.5M3.5 15.5H20" />
+        }
+        @case ('toggle') {
+          <rect x="3" y="7" width="18" height="10" rx="5" />
+          <circle cx="15.5" cy="12" r="3" fill="currentColor" stroke="none" />
+        }
+        @case ('list') {
+          <path d="M9 6.5h11M9 12h11M9 17.5h11" />
+          <circle cx="4.5" cy="6.5" r="1.2" fill="currentColor" stroke="none" />
+          <circle cx="4.5" cy="12" r="1.2" fill="currentColor" stroke="none" />
+          <circle cx="4.5" cy="17.5" r="1.2" fill="currentColor" stroke="none" />
+        }
+        @case ('photo') {
+          <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+          <circle cx="9" cy="10" r="1.75" />
+          <path d="M3.5 16.5l4.5-4.5a2 2 0 0 1 2.8 0l6.2 6.2M14.5 14l1.5-1.5a2 2 0 0 1 2.8 0l1.7 1.7" />
+        }
+        @case ('pin') {
+          <path d="M12 21s-6.5-5.6-6.5-11A6.5 6.5 0 0 1 18.5 10c0 5.4-6.5 11-6.5 11z" />
+          <circle cx="12" cy="10" r="2.25" />
+        }
+        @case ('edit') {
+          <path d="M15.5 4.5l4 4L8 20H4v-4L15.5 4.5z" />
+          <path d="M13.5 6.5l4 4" />
+        }
+        @case ('at') {
+          <circle cx="12" cy="12" r="4" />
+          <path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-4.5 7.79" />
+        }
+        @case ('message') {
+          <path d="M4 5.5h16a1 1 0 0 1 1 1V15a1 1 0 0 1-1 1H9l-4.5 4V16H4a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1z" />
         }
       }
     </svg>

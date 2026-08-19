@@ -5,6 +5,7 @@ import { WorkItemLinkService } from '../../core/services/work-item-link.service'
 import { WorkItemLinkResponse } from '../../core/models/work-item-link.model';
 import { WORK_ITEM_LINK_TYPES } from '../../core/models/common.model';
 import { ToastService } from '../../core/state/toast.service';
+import { CurrentProjectStore } from '../../core/state/current-project.store';
 import { ConfirmDialogService } from '../../shared/ui/confirm-dialog.service';
 
 const LINK_TYPE_LABEL: Record<string, string> = {
@@ -30,7 +31,7 @@ const LINK_TYPE_LABEL: Record<string, string> = {
             </select>
           </div>
           <div class="flex-1">
-            <label class="label">Target work item id</label>
+            <label class="label">Target {{ currentProjectStore.itemLabelSingular().toLowerCase() }} id</label>
             <input type="text" class="input" placeholder="paste the other item's id" [(ngModel)]="targetId" />
           </div>
           <button type="button" class="btn-primary" [disabled]="!targetId().trim()" (click)="add()">Link</button>
@@ -48,7 +49,7 @@ const LINK_TYPE_LABEL: Record<string, string> = {
           <button type="button" class="text-xs text-slate-400 hover:text-red-600" (click)="remove(link)">Remove</button>
         </div>
       } @empty {
-        <p class="text-sm text-slate-400">No linked work items yet.</p>
+        <p class="text-sm text-slate-400">No linked {{ currentProjectStore.itemLabelPlural().toLowerCase() }} yet.</p>
       }
     </div>
   `,
@@ -57,6 +58,7 @@ export class LinksTabComponent implements OnInit {
   private readonly linkService = inject(WorkItemLinkService);
   private readonly toast = inject(ToastService);
   private readonly confirmDialog = inject(ConfirmDialogService);
+  readonly currentProjectStore = inject(CurrentProjectStore);
 
   readonly workItemId = input.required<string>();
   readonly projectId = input.required<string>();
@@ -90,10 +92,10 @@ export class LinksTabComponent implements OnInit {
   }
 
   async remove(link: WorkItemLinkResponse): Promise<void> {
-    const confirmed = await this.confirmDialog.confirm('Remove this link between the two work items?', {
-      title: 'Remove link',
-      confirmLabel: 'Remove',
-    });
+    const confirmed = await this.confirmDialog.confirm(
+      `Remove this link between the two ${this.currentProjectStore.itemLabelPlural().toLowerCase()}?`,
+      { title: 'Remove link', confirmLabel: 'Remove' },
+    );
     if (!confirmed) return;
     this.linkService.delete(this.workItemId(), link.id).subscribe({
       next: () => this.links.update((list) => list.filter((l) => l.id !== link.id)),

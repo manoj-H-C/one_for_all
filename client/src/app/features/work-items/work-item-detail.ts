@@ -9,6 +9,7 @@ import { MemberService } from '../../core/services/member.service';
 import { CustomFieldService } from '../../core/services/custom-field.service';
 import { WorkflowService } from '../../core/services/workflow.service';
 import { SprintService } from '../../core/services/sprint.service';
+import { CurrentProjectStore } from '../../core/state/current-project.store';
 import { ProjectPermissionsService } from '../../core/state/project-permissions.service';
 import { ToastService } from '../../core/state/toast.service';
 import { WorkItemResponse } from '../../core/models/work-item.model';
@@ -53,6 +54,7 @@ export class WorkItemDetailComponent implements OnInit {
   private readonly permissions = inject(ProjectPermissionsService);
   private readonly toast = inject(ToastService);
   private readonly confirmDialog = inject(ConfirmDialogService);
+  readonly currentProjectStore = inject(CurrentProjectStore);
 
   readonly workItemId = this.route.snapshot.paramMap.get('id')!;
   readonly projectId = resolveProjectId(this.route);
@@ -173,14 +175,15 @@ export class WorkItemDetailComponent implements OnInit {
   }
 
   async remove(): Promise<void> {
+    const label = this.currentProjectStore.itemLabelSingular();
     const confirmed = await this.confirmDialog.confirm(
       `Delete "${this.item()?.title}"? Comments and attachments will still exist but this item will disappear from the API.`,
-      { title: 'Delete work item', confirmLabel: 'Delete' },
+      { title: `Delete ${label.toLowerCase()}`, confirmLabel: 'Delete' },
     );
     if (!confirmed) return;
     this.workItemService.delete(this.workItemId).subscribe({
       next: () => {
-        this.toast.success('Work item deleted');
+        this.toast.success(`${label} deleted`);
         this.router.navigate(['/projects', this.projectId, 'board']);
       },
       error: (err) => this.toast.error(err.message),

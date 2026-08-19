@@ -124,7 +124,9 @@
             <p>Updated {{ it.updatedAt | date: 'medium' }}</p>
           </div>
           @if (canDelete()) {
-            <button type="button" class="btn-danger w-full" (click)="remove()">Delete work item</button>
+            <button type="button" class="btn-danger w-full" (click)="remove()">
+              Delete {{ currentProjectStore.itemLabelSingular().toLowerCase() }}
+            </button>
           }
         </div>
       </div>

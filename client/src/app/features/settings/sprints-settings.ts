@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { SprintService } from '../../core/services/sprint.service';
+import { CurrentProjectStore } from '../../core/state/current-project.store';
 import { ProjectPermissionsService } from '../../core/state/project-permissions.service';
 import { ToastService } from '../../core/state/toast.service';
 import { ConfirmDialogService } from '../../shared/ui/confirm-dialog.service';
@@ -18,7 +19,7 @@ import { resolveProjectId } from '../../core/util/route.util';
     <div class="mb-6">
       <h1 class="text-[26px] font-bold tracking-tight text-slate-900">Sprints</h1>
       <p class="mt-0.5 text-sm text-slate-500">
-        Optional time-boxed iterations. Work items left unassigned to a sprint stay in the backlog.
+        Optional time-boxed iterations. {{ currentProjectStore.itemLabelPlural() }} left unassigned to a sprint stay in the backlog.
       </p>
     </div>
 
@@ -52,7 +53,9 @@ import { resolveProjectId } from '../../core/util/route.util';
             }
           </div>
         } @empty {
-          <p class="text-sm text-slate-500">No sprints yet. Work items are all in the backlog.</p>
+          <p class="text-sm text-slate-500">
+            No sprints yet. {{ currentProjectStore.itemLabelPlural() }} are all in the backlog.
+          </p>
         }
       </div>
 
@@ -76,6 +79,7 @@ export class SprintsSettingsComponent implements OnInit {
   private readonly permissions = inject(ProjectPermissionsService);
   private readonly toast = inject(ToastService);
   private readonly confirmDialog = inject(ConfirmDialogService);
+  readonly currentProjectStore = inject(CurrentProjectStore);
 
   readonly projectId = resolveProjectId(this.route);
   readonly canManage = toSignal(this.permissions.has(this.projectId, PERMISSION_CODE.WORKFLOW_MANAGE), {
@@ -119,7 +123,7 @@ export class SprintsSettingsComponent implements OnInit {
 
   async removeSprint(sprint: SprintResponse): Promise<void> {
     const confirmed = await this.confirmDialog.confirm(
-      `Delete sprint "${sprint.name}"? Work items on it move back to the backlog.`,
+      `Delete sprint "${sprint.name}"? ${this.currentProjectStore.itemLabelPlural()} on it move back to the backlog.`,
       { title: 'Delete sprint', confirmLabel: 'Delete' },
     );
     if (!confirmed) return;

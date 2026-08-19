@@ -9,6 +9,7 @@ import { WorkItemService } from '../../core/services/work-item.service';
 import { MemberService } from '../../core/services/member.service';
 import { CustomFieldService } from '../../core/services/custom-field.service';
 import { SprintService } from '../../core/services/sprint.service';
+import { CurrentProjectStore } from '../../core/state/current-project.store';
 import { ProjectPermissionsService } from '../../core/state/project-permissions.service';
 import { ToastService } from '../../core/state/toast.service';
 import { WorkflowStatusResponse } from '../../core/models/workflow.model';
@@ -63,6 +64,7 @@ export class BoardPageComponent implements OnInit {
   private readonly permissions = inject(ProjectPermissionsService);
   private readonly toast = inject(ToastService);
 
+  readonly currentProjectStore = inject(CurrentProjectStore);
   readonly projectId = resolveProjectId(this.route);
 
   readonly view = signal<'board' | 'list'>('board');
@@ -238,7 +240,7 @@ export class BoardPageComponent implements OnInit {
 
   onCreated(item: WorkItemResponse): void {
     this.createOpen.set(false);
-    this.toast.success('Work item created');
+    this.toast.success(`${this.currentProjectStore.itemLabelSingular()} created`);
     this.itemsByStatus.update((map) => {
       const next = { ...map };
       next[item.statusId] = [item, ...(next[item.statusId] ?? [])];

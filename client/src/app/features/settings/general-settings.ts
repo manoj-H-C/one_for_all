@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -9,56 +9,130 @@ import { ToastService } from '../../core/state/toast.service';
 import { ConfirmDialogService } from '../../shared/ui/confirm-dialog.service';
 import { PERMISSION_CODE } from '../../core/models/role.model';
 import { resolveProjectId } from '../../core/util/route.util';
+import { IconComponent } from '../../shared/ui/icon';
+import { colorFor } from '../../shared/util/color-hash';
 
 @Component({
   selector: 'app-general-settings',
-  imports: [FormsModule],
+  imports: [FormsModule, IconComponent],
   template: `
-    <div class="mx-auto max-w-4xl">
-      <div class="mb-6">
-        <h1 class="text-[26px] font-bold tracking-tight text-slate-900">General settings</h1>
-        <p class="mt-0.5 text-sm text-slate-500">Project name, item labels, and the danger zone.</p>
+    <div class="mx-auto flex max-w-4xl flex-col gap-6 pb-24 animate-fade-in">
+      <div class="flex items-center gap-3.5">
+        <span
+          class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white"
+          style="background: linear-gradient(135deg, #a78bfa, #22d3ee); box-shadow: 0 6px 16px -4px rgb(139 92 246 / 0.45)"
+        >
+          <app-icon name="settings" [size]="20" />
+        </span>
+        <div>
+          <h1 class="text-[26px] font-bold tracking-tight text-slate-900">General settings</h1>
+          <p class="mt-0.5 text-sm text-slate-500">Project identity, item labels, and the danger zone.</p>
+        </div>
       </div>
 
-      <div class="card flex flex-col gap-4 p-5">
-        <div>
-          <label class="label">Project key</label>
-          <input type="text" class="input bg-slate-50" [value]="currentProjectStore.project()?.key" disabled />
-          <p class="mt-1 text-xs text-slate-400">Can't be changed once set.</p>
-        </div>
-        <div>
-          <label class="label">Name</label>
-          <input type="text" class="input" [(ngModel)]="name" [disabled]="!canManage()" />
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="label">Item name (singular)</label>
-            <input type="text" class="input" [(ngModel)]="singular" [disabled]="!canManage()" />
-          </div>
-          <div>
-            <label class="label">Item name (plural)</label>
-            <input type="text" class="input" [(ngModel)]="plural" [disabled]="!canManage()" />
+      <!-- Project details -->
+      <div class="card p-5">
+        <div class="mb-4 flex items-center gap-3">
+          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
+            <app-icon name="folder" [size]="17" />
+          </span>
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-slate-800">Project details</p>
+            <p class="truncate text-xs text-slate-500">How this project appears across the app.</p>
           </div>
         </div>
-        @if (canManage()) {
-          <div class="flex justify-end">
-            <button type="button" class="btn-primary" [disabled]="saving()" (click)="save()">
-              {{ saving() ? 'Saving…' : 'Save changes' }}
-            </button>
+
+        <div class="flex items-start gap-4">
+          <span
+            class="mt-0.5 flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-base font-bold {{ avatarColor().bg }} {{ avatarColor().text }}"
+          >
+            {{ projectKey().slice(0, 2) }}
+          </span>
+          <div class="grid min-w-0 flex-1 grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label class="label">Project key</label>
+              <input type="text" class="input bg-slate-50 font-medium tracking-wide text-slate-500" [value]="projectKey()" disabled />
+              <p class="mt-1 text-xs text-slate-400">Can't be changed once set.</p>
+            </div>
+            <div>
+              <label class="label">Name</label>
+              <input type="text" class="input" placeholder="Substation Rewire" [(ngModel)]="name" [disabled]="!canManage()" />
+              @if (!name().trim()) {
+                <p class="mt-1 text-xs text-red-500">Name can't be empty.</p>
+              }
+            </div>
           </div>
-        }
+        </div>
       </div>
 
+      <!-- Item labels -->
+      <div class="card p-5">
+        <div class="mb-4 flex items-center gap-3">
+          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-100 text-cyan-600">
+            <app-icon name="text" [size]="17" />
+          </span>
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-slate-800">Item labels</p>
+            <p class="truncate text-xs text-slate-500">What tickets are called across boards, buttons, and messages.</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label class="label">Singular</label>
+            <input type="text" class="input" placeholder="Work item" [(ngModel)]="singular" [disabled]="!canManage()" />
+          </div>
+          <div>
+            <label class="label">Plural</label>
+            <input type="text" class="input" placeholder="Work items" [(ngModel)]="plural" [disabled]="!canManage()" />
+          </div>
+        </div>
+
+        <div class="mt-4 flex flex-wrap items-center gap-2 rounded-xl bg-slate-50 px-3.5 py-3 text-sm">
+          <app-icon name="sparkles" [size]="15" class="shrink-0 text-primary-500" />
+          <span class="text-slate-500">Preview:</span>
+          <span class="font-medium text-slate-700">"New {{ previewSingular() }}"</span>
+          <span class="text-slate-300">·</span>
+          <span class="font-medium text-slate-700">"3 {{ previewPlural() }}"</span>
+        </div>
+      </div>
+
+      <!-- Danger zone -->
       @if (canManage()) {
-        <div class="card mt-6 flex items-center justify-between p-5">
-          <div>
-            <p class="font-medium text-slate-800">Delete this project</p>
-            <p class="text-sm text-slate-500">Soft-deletes the project — its data survives but disappears from the API.</p>
+        <div class="card border-l-4 border-l-red-400 p-5">
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600">
+                <app-icon name="trash" [size]="16" />
+              </span>
+              <div>
+                <p class="text-sm font-semibold text-slate-800">Delete this project</p>
+                <p class="text-xs text-slate-500">Soft-deletes the project — its data survives but disappears from the API.</p>
+              </div>
+            </div>
+            <button type="button" class="btn-danger shrink-0" (click)="deleteProject()">Delete project</button>
           </div>
-          <button type="button" class="btn-danger" (click)="deleteProject()">Delete project</button>
         </div>
       }
     </div>
+
+    @if (canManage() && dirty()) {
+      <div
+        class="fixed bottom-6 left-1/2 z-30 flex w-[calc(100%-3rem)] max-w-lg -translate-x-1/2 items-center justify-between gap-3 rounded-2xl border border-primary-200 bg-white/95 p-3.5 pl-4 backdrop-blur-md animate-fade-in"
+        style="box-shadow: var(--shadow-lift)"
+      >
+        <p class="flex items-center gap-2 text-sm font-medium text-slate-700">
+          <span class="h-2 w-2 shrink-0 rounded-full bg-primary-500"></span>
+          You have unsaved changes
+        </p>
+        <div class="flex shrink-0 gap-2">
+          <button type="button" class="btn-secondary" [disabled]="saving()" (click)="discard()">Discard</button>
+          <button type="button" class="btn-primary" [disabled]="saving() || !name().trim()" (click)="save()">
+            {{ saving() ? 'Saving…' : 'Save changes' }}
+          </button>
+        </div>
+      </div>
+    }
   `,
 })
 export class GeneralSettingsComponent implements OnInit {
@@ -80,16 +154,39 @@ export class GeneralSettingsComponent implements OnInit {
   readonly plural = signal('');
   readonly saving = signal(false);
 
+  protected readonly colorFor = colorFor;
+  protected readonly projectKey = computed(() => this.currentProjectStore.project()?.key ?? '');
+  protected readonly avatarColor = computed(() => colorFor(this.projectKey() || 'project'));
+  protected readonly previewSingular = computed(() => (this.singular().trim() || 'Work item').toLowerCase());
+  protected readonly previewPlural = computed(() => (this.plural().trim() || 'Work items').toLowerCase());
+
+  private readonly snapshot = signal({ name: '', singular: '', plural: '' });
+
+  readonly dirty = computed(
+    () => this.name() !== this.snapshot().name || this.singular() !== this.snapshot().singular || this.plural() !== this.snapshot().plural,
+  );
+
   ngOnInit(): void {
     const project = this.currentProjectStore.project();
     if (project) {
-      this.name.set(project.name);
-      this.singular.set(project.itemDisplayNameSingular);
-      this.plural.set(project.itemDisplayNamePlural);
+      this.applySnapshot(project.name, project.itemDisplayNameSingular, project.itemDisplayNamePlural);
     }
   }
 
+  private applySnapshot(name: string, singular: string, plural: string): void {
+    this.name.set(name);
+    this.singular.set(singular);
+    this.plural.set(plural);
+    this.snapshot.set({ name, singular, plural });
+  }
+
+  discard(): void {
+    const s = this.snapshot();
+    this.applySnapshot(s.name, s.singular, s.plural);
+  }
+
   save(): void {
+    if (!this.name().trim()) return;
     this.saving.set(true);
     this.projectService
       .update(this.projectId, {
@@ -100,6 +197,7 @@ export class GeneralSettingsComponent implements OnInit {
       .subscribe({
         next: (updated) => {
           this.currentProjectStore.applyUpdate(updated);
+          this.applySnapshot(updated.name, updated.itemDisplayNameSingular, updated.itemDisplayNamePlural);
           this.saving.set(false);
           this.toast.success('Project updated');
         },

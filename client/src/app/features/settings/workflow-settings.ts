@@ -5,6 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 import { CdkDropList, CdkDrag, CdkDragHandle, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { forkJoin } from 'rxjs';
 import { WorkflowService } from '../../core/services/workflow.service';
+import { CurrentProjectStore } from '../../core/state/current-project.store';
 import { ProjectPermissionsService } from '../../core/state/project-permissions.service';
 import { ToastService } from '../../core/state/toast.service';
 import { ConfirmDialogService } from '../../shared/ui/confirm-dialog.service';
@@ -199,6 +200,7 @@ export class WorkflowSettingsComponent implements OnInit {
   private readonly permissions = inject(ProjectPermissionsService);
   private readonly toast = inject(ToastService);
   private readonly confirmDialog = inject(ConfirmDialogService);
+  readonly currentProjectStore = inject(CurrentProjectStore);
 
   protected readonly colorFor = colorFor;
 
@@ -295,7 +297,7 @@ export class WorkflowSettingsComponent implements OnInit {
 
   async removeStatus(status: WorkflowStatusResponse): Promise<void> {
     const confirmed = await this.confirmDialog.confirm(
-      `Delete status "${status.name}"? This fails if any work item is still on it.`,
+      `Delete status "${status.name}"? This fails if any ${this.currentProjectStore.itemLabelSingular().toLowerCase()} is still on it.`,
       { title: 'Delete status', confirmLabel: 'Delete' },
     );
     if (!confirmed) return;
