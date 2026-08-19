@@ -1,4 +1,6 @@
-const PALETTE = [
+export type PaletteColor = { bg: string; text: string; dot: string; ring: string };
+
+const PALETTE: PaletteColor[] = [
   { bg: 'bg-violet-100', text: 'text-violet-700', dot: 'bg-violet-500', ring: 'ring-violet-200' },
   { bg: 'bg-sky-100', text: 'text-sky-700', dot: 'bg-sky-500', ring: 'ring-sky-200' },
   { bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500', ring: 'ring-emerald-200' },
@@ -19,6 +21,17 @@ function hashString(value: string): number {
 
 export function colorFor(seed: string): (typeof PALETTE)[number] {
   return PALETTE[hashString(seed) % PALETTE.length];
+}
+
+/**
+ * Assigns a color by raw position instead of hashing a name. Use this for a
+ * small, known list (workflow categories, statuses) where every item must
+ * get a visibly distinct color - a name hash can't guarantee that (two
+ * different strings can land in the same bucket), but a fixed index always
+ * can, up to the size of the palette.
+ */
+export function colorForIndex(index: number): (typeof PALETTE)[number] {
+  return PALETTE[((index % PALETTE.length) + PALETTE.length) % PALETTE.length];
 }
 
 export function initialsFor(name: string): string {

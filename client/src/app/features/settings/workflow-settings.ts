@@ -15,7 +15,7 @@ import { resolveProjectId } from '../../core/util/route.util';
 import { IconComponent } from '../../shared/ui/icon';
 import { StatusPillComponent } from '../../shared/ui/status-pill';
 import { EmptyStateComponent } from '../../shared/ui/empty-state';
-import { colorFor } from '../../shared/util/color-hash';
+import { colorForIndex } from '../../shared/util/color-hash';
 
 @Component({
   selector: 'app-workflow-settings',
@@ -35,7 +35,7 @@ import { colorFor } from '../../shared/util/color-hash';
           <p class="mb-3 text-sm font-semibold text-slate-700">Pipeline preview</p>
           <div class="flex items-center gap-2 overflow-x-auto pb-1">
             @for (status of sortedStatuses(); track status.id; let last = $last) {
-              <app-status-pill [name]="status.name" [seed]="status.categoryName" />
+              <app-status-pill [name]="status.name" [colorOverride]="categoryColor(status.categoryId)" />
               @if (!last) {
                 <app-icon name="chevron-right" [size]="14" class="shrink-0 text-slate-300" />
               }
@@ -62,7 +62,7 @@ import { colorFor } from '../../shared/util/color-hash';
               <div
                 class="group flex items-center gap-2.5 rounded-xl border border-transparent px-2.5 py-1.5 transition-colors hover:border-slate-200 hover:bg-slate-50/70"
               >
-                <span class="h-2.5 w-2.5 shrink-0 rounded-full {{ colorFor(cat.name).dot }}"></span>
+                <span class="h-2.5 w-2.5 shrink-0 rounded-full {{ categoryColor(cat.id).dot }}"></span>
                 <input
                   type="text"
                   class="input h-8 flex-1 border-transparent bg-transparent px-1.5 py-1 text-sm focus:border-slate-300 focus:bg-white"
@@ -130,7 +130,7 @@ import { colorFor } from '../../shared/util/color-hash';
                     <app-icon name="grip" [size]="15" />
                   </span>
                 }
-                <span class="h-2.5 w-2.5 shrink-0 rounded-full {{ colorFor(status.categoryName).dot }}"></span>
+                <span class="h-2.5 w-2.5 shrink-0 rounded-full {{ categoryColor(status.categoryId).dot }}"></span>
                 <input
                   type="text"
                   class="input h-8 flex-1 border-transparent bg-transparent px-1.5 py-1 text-sm focus:border-slate-300 focus:bg-white"
@@ -202,8 +202,6 @@ export class WorkflowSettingsComponent implements OnInit {
   private readonly confirmDialog = inject(ConfirmDialogService);
   readonly currentProjectStore = inject(CurrentProjectStore);
 
-  protected readonly colorFor = colorFor;
-
   readonly projectId = resolveProjectId(this.route);
   readonly canManage = toSignal(this.permissions.has(this.projectId, PERMISSION_CODE.WORKFLOW_MANAGE), {
     initialValue: false,
@@ -216,6 +214,12 @@ export class WorkflowSettingsComponent implements OnInit {
   readonly newStatusCategoryId = signal('');
 
   readonly sortedStatuses = () => [...this.statuses()].sort((a, b) => a.sortOrder - b.sortOrder);
+
+  /** Every category gets its own palette slot by position in the list, so no two categories - and no two differently-categorized statuses - ever render with the same dot color. */
+  categoryColor(categoryId: string) {
+    const index = this.categories().findIndex((c) => c.id === categoryId);
+    return colorForIndex(index === -1 ? 0 : index);
+  }
 
   ngOnInit(): void {
     forkJoin({

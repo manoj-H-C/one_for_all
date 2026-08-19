@@ -12,7 +12,7 @@ import { SprintService } from '../../core/services/sprint.service';
 import { CurrentProjectStore } from '../../core/state/current-project.store';
 import { ProjectPermissionsService } from '../../core/state/project-permissions.service';
 import { ToastService } from '../../core/state/toast.service';
-import { WorkflowStatusResponse } from '../../core/models/workflow.model';
+import { StatusCategoryResponse, WorkflowStatusResponse } from '../../core/models/workflow.model';
 import { WorkItemResponse, WorkItemFilter } from '../../core/models/work-item.model';
 import { MemberResponse } from '../../core/models/member.model';
 import { CustomFieldResponse } from '../../core/models/custom-field.model';
@@ -30,6 +30,7 @@ import { PriorityBadgeComponent } from '../../shared/ui/priority-badge';
 import { IconComponent } from '../../shared/ui/icon';
 import { DropdownMenuComponent } from '../../shared/ui/dropdown-menu';
 import { SearchableSelectComponent, SearchableSelectOption } from '../../shared/ui/searchable-select';
+import { colorForIndex } from '../../shared/util/color-hash';
 
 const BOARD_PAGE_SIZE = 200;
 
@@ -69,6 +70,7 @@ export class BoardPageComponent implements OnInit {
 
   readonly view = signal<'board' | 'list'>('board');
   readonly statuses = signal<WorkflowStatusResponse[]>([]);
+  readonly categories = signal<StatusCategoryResponse[]>([]);
   readonly members = signal<MemberResponse[]>([]);
   readonly customFields = signal<CustomFieldResponse[]>([]);
   readonly sprints = signal<SprintResponse[]>([]);
@@ -138,11 +140,13 @@ export class BoardPageComponent implements OnInit {
     this.loading.set(true);
     forkJoin({
       statuses: this.workflowService.listStatuses(this.projectId),
+      categories: this.workflowService.listCategories(this.projectId),
       members: this.memberService.list(this.projectId),
       customFields: this.customFieldService.list(this.projectId),
       sprints: this.sprintService.list(this.projectId),
-    }).subscribe(({ statuses, members, customFields, sprints }) => {
+    }).subscribe(({ statuses, categories, members, customFields, sprints }) => {
       this.statuses.set(statuses);
+      this.categories.set(categories);
       this.members.set(members);
       this.customFields.set(customFields);
       this.sprints.set(sprints);
@@ -205,6 +209,17 @@ export class BoardPageComponent implements OnInit {
     this.filterQ.set(value);
     if (this.searchDebounce) clearTimeout(this.searchDebounce);
     this.searchDebounce = setTimeout(() => this.onFilterChange(), 400);
+  }
+
+  /** Every category gets its own palette slot by position in the list, so no two categories - and no two differently-categorized statuses - ever render with the same dot color. Kept in sync with the same scheme in Workflow settings. */
+  categoryColor(categoryId: string) {
+    const index = this.categories().findIndex((c) => c.id === categoryId);
+    return colorForIndex(index === -1 ? 0 : index);
+  }
+
+  statusColor(statusId: string) {
+    const status = this.statuses().find((s) => s.id === statusId);
+    return this.categoryColor(status?.categoryId ?? '');
   }
 
   memberName(userId: string | null): string {

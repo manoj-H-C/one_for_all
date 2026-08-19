@@ -1,5 +1,5 @@
 import { Component, computed, input } from '@angular/core';
-import { colorFor } from '../util/color-hash';
+import { colorFor, PaletteColor } from '../util/color-hash';
 
 @Component({
   selector: 'app-status-pill',
@@ -13,6 +13,8 @@ import { colorFor } from '../util/color-hash';
 export class StatusPillComponent {
   readonly name = input.required<string>();
   readonly seed = input<string>('');
+  /** Precomputed color, e.g. colorForIndex(i) for a small known list where every item needs a visibly distinct dot. Overrides the name/seed hash when set. */
+  readonly colorOverride = input<PaletteColor | null>(null);
 
-  readonly color = computed(() => colorFor(this.seed() || this.name()));
+  readonly color = computed(() => this.colorOverride() ?? colorFor(this.seed() || this.name()));
 }
