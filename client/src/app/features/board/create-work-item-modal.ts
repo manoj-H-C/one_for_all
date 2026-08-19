@@ -5,6 +5,7 @@ import { CustomFieldResponse } from '../../core/models/custom-field.model';
 import { MemberResponse } from '../../core/models/member.model';
 import { WorkflowStatusResponse } from '../../core/models/workflow.model';
 import { SprintResponse } from '../../core/models/sprint.model';
+import { WorkItemTypeResponse } from '../../core/models/work-item-type.model';
 import { WorkItemResponse } from '../../core/models/work-item.model';
 import { WorkItemService } from '../../core/services/work-item.service';
 import { ApiError } from '../../core/models/common.model';
@@ -27,7 +28,7 @@ import { CustomFieldsFormComponent } from '../../shared/ui/custom-fields-form';
           <textarea id="description" class="input" rows="3" [(ngModel)]="description" name="description"></textarea>
         </div>
 
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <label class="label" for="statusId">Status</label>
             <select
@@ -50,6 +51,17 @@ import { CustomFieldsFormComponent } from '../../shared/ui/custom-fields-form';
               }
             </select>
           </div>
+          @if (types().length > 0) {
+            <div>
+              <label class="label" for="typeId">Type</label>
+              <select id="typeId" class="input" [(ngModel)]="typeId" name="typeId">
+                <option [value]="''">No type</option>
+                @for (t of types(); track t.id) {
+                  <option [value]="t.id">{{ t.name }}</option>
+                }
+              </select>
+            </div>
+          }
         </div>
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -123,6 +135,7 @@ export class CreateWorkItemModalComponent {
   readonly members = input<MemberResponse[]>([]);
   readonly customFields = input<CustomFieldResponse[]>([]);
   readonly sprints = input<SprintResponse[]>([]);
+  readonly types = input<WorkItemTypeResponse[]>([]);
 
   readonly closed = output<void>();
   readonly created = output<WorkItemResponse>();
@@ -137,6 +150,7 @@ export class CreateWorkItemModalComponent {
   readonly reporterId = signal('');
   readonly dueDate = signal('');
   readonly sprintId = signal('');
+  readonly typeId = signal('');
   readonly customFieldValues = signal<Record<string, unknown>>({});
 
   readonly submitting = signal(false);
@@ -163,6 +177,7 @@ export class CreateWorkItemModalComponent {
         assigneeId: this.assigneeId() || null,
         reporterId: this.reporterId() || null,
         sprintId: this.sprintId() || null,
+        typeId: this.typeId() || null,
         priority: this.priority(),
         dueDate: this.dueDate() || null,
         customFields: this.customFieldValues(),
@@ -189,6 +204,7 @@ export class CreateWorkItemModalComponent {
     this.reporterId.set('');
     this.dueDate.set('');
     this.sprintId.set('');
+    this.typeId.set('');
     this.customFieldValues.set({});
   }
 }

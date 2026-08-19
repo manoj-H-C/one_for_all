@@ -9,6 +9,7 @@ import { MemberService } from '../../core/services/member.service';
 import { CustomFieldService } from '../../core/services/custom-field.service';
 import { WorkflowService } from '../../core/services/workflow.service';
 import { SprintService } from '../../core/services/sprint.service';
+import { WorkItemTypeService } from '../../core/services/work-item-type.service';
 import { CurrentProjectStore } from '../../core/state/current-project.store';
 import { ProjectPermissionsService } from '../../core/state/project-permissions.service';
 import { ToastService } from '../../core/state/toast.service';
@@ -17,6 +18,7 @@ import { MemberResponse } from '../../core/models/member.model';
 import { CustomFieldResponse } from '../../core/models/custom-field.model';
 import { WorkflowStatusResponse } from '../../core/models/workflow.model';
 import { SprintResponse } from '../../core/models/sprint.model';
+import { WorkItemTypeResponse } from '../../core/models/work-item-type.model';
 import { PRIORITIES, Priority } from '../../core/models/common.model';
 import { PERMISSION_CODE } from '../../core/models/role.model';
 import { ConfirmDialogService } from '../../shared/ui/confirm-dialog.service';
@@ -51,6 +53,7 @@ export class WorkItemDetailComponent implements OnInit {
   private readonly customFieldService = inject(CustomFieldService);
   private readonly workflowService = inject(WorkflowService);
   private readonly sprintService = inject(SprintService);
+  private readonly workItemTypeService = inject(WorkItemTypeService);
   private readonly permissions = inject(ProjectPermissionsService);
   private readonly toast = inject(ToastService);
   private readonly confirmDialog = inject(ConfirmDialogService);
@@ -64,6 +67,7 @@ export class WorkItemDetailComponent implements OnInit {
   readonly customFields = signal<CustomFieldResponse[]>([]);
   readonly statuses = signal<WorkflowStatusResponse[]>([]);
   readonly sprints = signal<SprintResponse[]>([]);
+  readonly types = signal<WorkItemTypeResponse[]>([]);
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly activeTab = signal<Tab>('comments');
@@ -94,12 +98,14 @@ export class WorkItemDetailComponent implements OnInit {
       customFields: this.customFieldService.list(this.projectId),
       statuses: this.workflowService.listStatuses(this.projectId),
       sprints: this.sprintService.list(this.projectId),
-    }).subscribe(({ item, members, customFields, statuses, sprints }) => {
+      types: this.workItemTypeService.list(this.projectId),
+    }).subscribe(({ item, members, customFields, statuses, sprints, types }) => {
       this.applyItem(item);
       this.members.set(members);
       this.customFields.set(customFields);
       this.statuses.set(statuses);
       this.sprints.set(sprints);
+      this.types.set(types);
       this.loading.set(false);
     });
   }
@@ -169,6 +175,16 @@ export class WorkItemDetailComponent implements OnInit {
       next: (updated) => {
         this.applyItem(updated);
         this.toast.success('Sprint updated');
+      },
+      error: (err) => this.toast.error(err.message),
+    });
+  }
+
+  changeType(typeId: string): void {
+    this.workItemService.updateType(this.workItemId, typeId || null).subscribe({
+      next: (updated) => {
+        this.applyItem(updated);
+        this.toast.success('Type updated');
       },
       error: (err) => this.toast.error(err.message),
     });

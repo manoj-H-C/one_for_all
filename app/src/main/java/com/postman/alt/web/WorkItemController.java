@@ -9,6 +9,7 @@ import com.postman.alt.service.dto.WorkItemReporterUpdateRequest;
 import com.postman.alt.service.dto.WorkItemResponse;
 import com.postman.alt.service.dto.WorkItemSprintUpdateRequest;
 import com.postman.alt.service.dto.WorkItemStatusUpdateRequest;
+import com.postman.alt.service.dto.WorkItemTypeAssignRequest;
 import com.postman.alt.service.dto.WorkItemUpdateRequest;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -56,11 +57,12 @@ public class WorkItemController {
             @RequestParam(required = false) UUID assigneeId,
             @RequestParam(required = false) UUID reporterId,
             @RequestParam(required = false) UUID sprintId,
+            @RequestParam(required = false) UUID typeId,
             @RequestParam(required = false) String priority,
             @RequestParam(required = false) String q,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        return workItemService.list(projectId, CurrentUser.id(), statusId, assigneeId, reporterId, sprintId, priority, q, pageable);
+        return workItemService.list(projectId, CurrentUser.id(), statusId, assigneeId, reporterId, sprintId, typeId, priority, q, pageable);
     }
 
     @GetMapping("/api/work-items/{id}")
@@ -91,6 +93,11 @@ public class WorkItemController {
     @PatchMapping("/api/work-items/{id}/sprint")
     public WorkItemResponse updateSprint(@PathVariable UUID id, @RequestBody WorkItemSprintUpdateRequest request) {
         return workItemService.updateSprint(id, CurrentUser.id(), request.sprintId());
+    }
+
+    @PatchMapping("/api/work-items/{id}/type")
+    public WorkItemResponse updateType(@PathVariable UUID id, @RequestBody WorkItemTypeAssignRequest request) {
+        return workItemService.updateType(id, CurrentUser.id(), request.typeId());
     }
 
     @DeleteMapping("/api/work-items/{id}")

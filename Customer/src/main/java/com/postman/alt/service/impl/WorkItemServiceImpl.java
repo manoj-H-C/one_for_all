@@ -8,6 +8,7 @@ import com.postman.alt.entity.ProjectMemberId;
 import com.postman.alt.entity.Sprint;
 import com.postman.alt.entity.WorkItem;
 import com.postman.alt.entity.WorkItemActivity;
+import com.postman.alt.entity.WorkItemType;
 import com.postman.alt.entity.WorkflowStatus;
 import com.postman.alt.enums.NotificationType;
 import com.postman.alt.enums.Priority;
@@ -22,6 +23,7 @@ import com.postman.alt.repository.SprintRepository;
 import com.postman.alt.repository.WorkItemActivityRepository;
 import com.postman.alt.repository.WorkItemRepository;
 import com.postman.alt.repository.WorkItemSpecifications;
+import com.postman.alt.repository.WorkItemTypeRepository;
 import com.postman.alt.repository.WorkflowStatusRepository;
 import com.postman.alt.service.ProjectAccessService;
 import com.postman.alt.service.WorkItemService;
@@ -53,6 +55,7 @@ public class WorkItemServiceImpl implements WorkItemService {
     private final CustomFieldDefinitionRepository customFieldDefinitionRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final SprintRepository sprintRepository;
+    private final WorkItemTypeRepository workItemTypeRepository;
 
     public WorkItemServiceImpl(
             WorkItemRepository workItemRepository,
@@ -64,7 +67,8 @@ public class WorkItemServiceImpl implements WorkItemService {
             ProjectAccessService projectAccessService,
             CustomFieldDefinitionRepository customFieldDefinitionRepository,
             ProjectMemberRepository projectMemberRepository,
-            SprintRepository sprintRepository
+            SprintRepository sprintRepository,
+            WorkItemTypeRepository workItemTypeRepository
     ) {
         this.workItemRepository = workItemRepository;
         this.projectRepository = projectRepository;
@@ -76,6 +80,7 @@ public class WorkItemServiceImpl implements WorkItemService {
         this.customFieldDefinitionRepository = customFieldDefinitionRepository;
         this.projectMemberRepository = projectMemberRepository;
         this.sprintRepository = sprintRepository;
+        this.workItemTypeRepository = workItemTypeRepository;
     }
 
     @Override
@@ -97,6 +102,9 @@ public class WorkItemServiceImpl implements WorkItemService {
         item.setDueDate(request.dueDate());
         if (request.sprintId() != null) {
             item.setSprint(resolveSprint(projectId, request.sprintId()));
+        }
+        if (request.typeId() != null) {
+            item.setType(resolveType(projectId, request.typeId()));
         }
 
         Map<String, Object> customFields = mergeCustomFields(Map.of(), request.customFields());
@@ -121,7 +129,7 @@ public class WorkItemServiceImpl implements WorkItemService {
     @Override
     @Transactional(readOnly = true)
     public Page<WorkItemResponse> list(
-            UUID projectId, UUID requesterId, UUID statusId, UUID assigneeId, UUID reporterId, UUID sprintId,
+            UUID projectId, UUID requesterId, UUID statusId, UUID assigneeId, UUID reporterId, UUID sprintId, UUID typeId,
             String priority, String q, Pageable pageable
     ) {
         projectAccessService.requireMemberOrOwner(projectId, requesterId);
@@ -136,7 +144,7 @@ public class WorkItemServiceImpl implements WorkItemService {
         }
 
         return workItemRepository
-                .findAll(WorkItemSpecifications.forListing(projectId, statusId, assigneeId, reporterId, sprintId, priorityFilter, q), pageable)
+                .findAll(WorkItemSpecifications.forListing(projectId, statusId, assigneeId, reporterId, sprintId, typeId, priorityFilter, q), pageable)
                 .map(this::toResponse);
     }
 
@@ -293,6 +301,30 @@ public class WorkItemServiceImpl implements WorkItemService {
 
     @Override
     @Transactional
+    public WorkItemResponse updateType(UUID id, UUID actorId, UUID newTypeId) {
+        WorkItem item = getWorkItem(id);
+        UUID projectId = item.getProject().getId();
+        projectAccessService.requirePermission(projectId, actorId, "WORK_ITEM_EDIT");
+        AppUser actor = getUser(actorId);
+
+        UUID oldTypeId = item.getType() != null ? item.getType().getId() : null;
+        if (Objects.equals(oldTypeId, newTypeId)) {
+            return toResponse(item);
+        }
+
+        WorkItemType newType = newTypeId != null ? resolveType(projectId, newTypeId) : null;
+        logChange(
+                item, actor, "type",
+                item.getType() != null ? item.getType().getName() : null,
+                newType != null ? newType.getName() : null
+        );
+        item.setType(newType);
+
+        return toResponse(item);
+    }
+
+    @Override
+    @Transactional
     public void delete(UUID id, UUID actorId) {
         WorkItem item = getWorkItem(id);
         projectAccessService.requirePermission(item.getProject().getId(), actorId, "WORK_ITEM_DELETE");
@@ -345,6 +377,12 @@ public class WorkItemServiceImpl implements WorkItemService {
                 .orElseThrow(() -> new ResourceNotFoundException("Sprint", sprintId));
     }
 
+    private WorkItemType resolveType(UUID projectId, UUID typeId) {
+        return workItemTypeRepository.findById(typeId)
+                .filter(t -> t.getProject().getId().equals(projectId))
+                .orElseThrow(() -> new ResourceNotFoundException("WorkItemType", typeId));
+    }
+
     private void notifyAssigned(WorkItem item, AppUser actor) {
         notificationRepository.save(new Notification(
                 item.getAssignee(), item, actor, NotificationType.ASSIGNED,
@@ -391,6 +429,8 @@ public class WorkItemServiceImpl implements WorkItemService {
                 item.getReporter() != null ? item.getReporter().getId() : null,
                 item.getSprint() != null ? item.getSprint().getId() : null,
                 item.getSprint() != null ? item.getSprint().getName() : null,
+                item.getType() != null ? item.getType().getId() : null,
+                item.getType() != null ? item.getType().getName() : null,
                 item.getTitle(),
                 item.getDescription(),
                 item.getPriority().name(),

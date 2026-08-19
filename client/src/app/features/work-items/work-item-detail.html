@@ -86,6 +86,17 @@
               }
             </select>
           </div>
+          @if (types().length > 0) {
+            <div>
+              <label class="label">Type</label>
+              <select class="input" [ngModel]="it.typeId ?? ''" [disabled]="!canEdit()" (ngModelChange)="changeType($event)">
+                <option value="">No type</option>
+                @for (t of types(); track t.id) {
+                  <option [value]="t.id">{{ t.name }}</option>
+                }
+              </select>
+            </div>
+          }
           <div>
             <label class="label">Assignee</label>
             <select class="input" [ngModel]="it.assigneeId ?? ''" [disabled]="!canAssign()" (ngModelChange)="changeAssignee($event)">

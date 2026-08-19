@@ -22,6 +22,9 @@ public record WorkItemCreateRequest(
         // optional - omit to leave it in the backlog. Must be a sprint that
         // belongs to this project when given.
         UUID sprintId,
+        // optional - omit to leave it untyped. Must be a WorkItemType that
+        // belongs to this project when given.
+        UUID typeId,
         String priority,
         LocalDate dueDate,
         Map<String, Object> customFields

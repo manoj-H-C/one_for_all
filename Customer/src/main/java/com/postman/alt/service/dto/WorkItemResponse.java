@@ -14,6 +14,8 @@ public record WorkItemResponse(
         UUID reporterId,
         UUID sprintId,
         String sprintName,
+        UUID typeId,
+        String typeName,
         String title,
         String description,
         String priority,

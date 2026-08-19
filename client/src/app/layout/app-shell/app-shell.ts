@@ -74,6 +74,7 @@ export class AppShellComponent implements OnInit, OnDestroy {
       { icon: 'members', label: 'Members', link: ['/projects', pid, 'settings', 'members'] },
       { icon: 'roles', label: 'Roles', link: ['/projects', pid, 'settings', 'roles'] },
       { icon: 'workflow', label: 'Workflow', link: ['/projects', pid, 'settings', 'workflow'] },
+      { icon: 'list', label: 'Types', link: ['/projects', pid, 'settings', 'types'] },
       { icon: 'fields', label: 'Custom fields', link: ['/projects', pid, 'settings', 'custom-fields'] },
       { icon: 'settings', label: 'Settings', link: ['/projects', pid, 'settings', 'general'] },
     ];

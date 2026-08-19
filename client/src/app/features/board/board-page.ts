@@ -9,6 +9,7 @@ import { WorkItemService } from '../../core/services/work-item.service';
 import { MemberService } from '../../core/services/member.service';
 import { CustomFieldService } from '../../core/services/custom-field.service';
 import { SprintService } from '../../core/services/sprint.service';
+import { WorkItemTypeService } from '../../core/services/work-item-type.service';
 import { CurrentProjectStore } from '../../core/state/current-project.store';
 import { ProjectPermissionsService } from '../../core/state/project-permissions.service';
 import { ToastService } from '../../core/state/toast.service';
@@ -17,6 +18,7 @@ import { WorkItemResponse, WorkItemFilter } from '../../core/models/work-item.mo
 import { MemberResponse } from '../../core/models/member.model';
 import { CustomFieldResponse } from '../../core/models/custom-field.model';
 import { SprintResponse } from '../../core/models/sprint.model';
+import { WorkItemTypeResponse } from '../../core/models/work-item-type.model';
 import { Page, PRIORITIES, Priority } from '../../core/models/common.model';
 import { PERMISSION_CODE } from '../../core/models/role.model';
 import { resolveProjectId } from '../../core/util/route.util';
@@ -62,6 +64,7 @@ export class BoardPageComponent implements OnInit {
   private readonly memberService = inject(MemberService);
   private readonly customFieldService = inject(CustomFieldService);
   private readonly sprintService = inject(SprintService);
+  private readonly workItemTypeService = inject(WorkItemTypeService);
   private readonly permissions = inject(ProjectPermissionsService);
   private readonly toast = inject(ToastService);
 
@@ -74,6 +77,7 @@ export class BoardPageComponent implements OnInit {
   readonly members = signal<MemberResponse[]>([]);
   readonly customFields = signal<CustomFieldResponse[]>([]);
   readonly sprints = signal<SprintResponse[]>([]);
+  readonly types = signal<WorkItemTypeResponse[]>([]);
   readonly itemsByStatus = signal<Record<string, WorkItemResponse[]>>({});
   readonly loading = signal(true);
   readonly createOpen = signal(false);
@@ -83,6 +87,7 @@ export class BoardPageComponent implements OnInit {
   readonly filterAssigneeId = signal('');
   readonly filterReporterId = signal('');
   readonly filterSprintId = signal('');
+  readonly filterTypeId = signal('');
   readonly filterPriority = signal<Priority | ''>('');
   readonly filterQ = signal('');
   private searchDebounce?: ReturnType<typeof setTimeout>;
@@ -106,6 +111,7 @@ export class BoardPageComponent implements OnInit {
     this.members().map((m) => ({ value: m.userId, label: m.name })),
   );
   readonly sprintOptions = computed<SearchableSelectOption[]>(() => this.sprints().map((s) => ({ value: s.id, label: s.name })));
+  readonly typeOptions = computed<SearchableSelectOption[]>(() => this.types().map((t) => ({ value: t.id, label: t.name })));
   readonly priorityOptions: SearchableSelectOption[] = this.priorities.map((p) => ({ value: p, label: p }));
 
   readonly activeFilterCount = computed(() => {
@@ -114,6 +120,7 @@ export class BoardPageComponent implements OnInit {
     if (this.filterAssigneeId()) count++;
     if (this.filterReporterId()) count++;
     if (this.filterSprintId()) count++;
+    if (this.filterTypeId()) count++;
     if (this.filterPriority()) count++;
     return count;
   });
@@ -128,6 +135,7 @@ export class BoardPageComponent implements OnInit {
     this.filterAssigneeId.set('');
     this.filterReporterId.set('');
     this.filterSprintId.set('');
+    this.filterTypeId.set('');
     this.filterPriority.set('');
     this.onFilterChange();
   }
@@ -144,12 +152,14 @@ export class BoardPageComponent implements OnInit {
       members: this.memberService.list(this.projectId),
       customFields: this.customFieldService.list(this.projectId),
       sprints: this.sprintService.list(this.projectId),
-    }).subscribe(({ statuses, categories, members, customFields, sprints }) => {
+      types: this.workItemTypeService.list(this.projectId),
+    }).subscribe(({ statuses, categories, members, customFields, sprints, types }) => {
       this.statuses.set(statuses);
       this.categories.set(categories);
       this.members.set(members);
       this.customFields.set(customFields);
       this.sprints.set(sprints);
+      this.types.set(types);
       this.loadItems();
     });
   }
@@ -160,6 +170,7 @@ export class BoardPageComponent implements OnInit {
     if (this.filterAssigneeId()) filter.assigneeId = this.filterAssigneeId();
     if (this.filterReporterId()) filter.reporterId = this.filterReporterId();
     if (this.filterSprintId()) filter.sprintId = this.filterSprintId();
+    if (this.filterTypeId()) filter.typeId = this.filterTypeId();
     if (this.filterPriority()) filter.priority = this.filterPriority() as Priority;
     if (this.filterQ()) filter.q = this.filterQ();
     return filter;

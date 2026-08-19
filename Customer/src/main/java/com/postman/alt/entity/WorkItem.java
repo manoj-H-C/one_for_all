@@ -62,6 +62,11 @@ public class WorkItem {
     @JoinColumn(name = "sprint_id")
     private Sprint sprint;
 
+    // optional - see WorkItemType's own javadoc. null means "no type set".
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "type_id")
+    private WorkItemType type;
+
     @Column(nullable = false)
     private String title;
 
@@ -153,6 +158,14 @@ public class WorkItem {
 
     public void setSprint(Sprint sprint) {
         this.sprint = sprint;
+    }
+
+    public WorkItemType getType() {
+        return type;
+    }
+
+    public void setType(WorkItemType type) {
+        this.type = type;
     }
 
     public String getTitle() {

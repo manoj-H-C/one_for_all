@@ -22,6 +22,7 @@ import { MembersSettingsComponent } from './features/settings/members-settings';
 import { RolesSettingsComponent } from './features/settings/roles-settings';
 import { WorkflowSettingsComponent } from './features/settings/workflow-settings';
 import { SprintsSettingsComponent } from './features/settings/sprints-settings';
+import { WorkItemTypesSettingsComponent } from './features/settings/work-item-types-settings';
 import { CustomFieldsSettingsComponent } from './features/settings/custom-fields-settings';
 import { OrgAdminPageComponent } from './features/org-admin/org-admin-page';
 import { NotificationsPageComponent } from './features/notifications/notifications-page';
@@ -60,6 +61,7 @@ export const routes: Routes = [
           { path: 'settings/roles', component: RolesSettingsComponent },
           { path: 'settings/workflow', component: WorkflowSettingsComponent },
           { path: 'settings/sprints', component: SprintsSettingsComponent },
+          { path: 'settings/types', component: WorkItemTypesSettingsComponent },
           { path: 'settings/custom-fields', component: CustomFieldsSettingsComponent },
         ],
       },

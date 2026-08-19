@@ -103,6 +103,17 @@
             />
           </div>
         }
+        @if (types().length > 0) {
+          <div>
+            <label class="mb-1 block text-xs font-medium text-slate-500">Type</label>
+            <app-searchable-select
+              [options]="typeOptions()"
+              [value]="filterTypeId()"
+              placeholder="Any type"
+              (valueChange)="filterTypeId.set($event); onFilterChange()"
+            />
+          </div>
+        }
         <div>
           <label class="mb-1 block text-xs font-medium text-slate-500">Priority</label>
           <app-searchable-select
@@ -168,7 +179,7 @@
             >
               @for (item of itemsByStatus()[status.id] ?? []; track item.id) {
                 <div cdkDrag [cdkDragData]="item" [cdkDragDisabled]="!canEdit()">
-                  <app-work-item-card [item]="item" [members]="members()" [customFields]="customFields()" />
+                  <app-work-item-card [item]="item" [members]="members()" [types]="types()" />
                 </div>
               } @empty {
                 <div class="flex flex-1 items-center justify-center rounded-xl border border-dashed border-slate-200 py-8 text-xs text-slate-400">
@@ -194,6 +205,9 @@
             @if (sprints().length > 0) {
               <th class="px-4 py-3">Sprint</th>
             }
+            @if (types().length > 0) {
+              <th class="px-4 py-3">Type</th>
+            }
             <th class="px-4 py-3">Due</th>
           </tr>
         </thead>
@@ -215,13 +229,16 @@
               @if (sprints().length > 0) {
                 <td class="px-4 py-3 text-slate-500">{{ item.sprintName ?? 'Backlog' }}</td>
               }
+              @if (types().length > 0) {
+                <td class="px-4 py-3 text-slate-500">{{ item.typeName ?? '—' }}</td>
+              }
               <td class="px-4 py-3" [class.text-red-600]="isOverdue(item)" [class.font-semibold]="isOverdue(item)" [class.text-slate-500]="!isOverdue(item)">
                 {{ item.dueDate ?? '—' }}
               </td>
             </tr>
           } @empty {
             <tr>
-              <td [attr.colspan]="sprints().length > 0 ? 6 : 5" class="px-4 py-12">
+              <td [attr.colspan]="5 + (sprints().length > 0 ? 1 : 0) + (types().length > 0 ? 1 : 0)" class="px-4 py-12">
                 <app-empty-state
                   icon="🔍"
                   [title]="'No ' + currentProjectStore.itemLabelPlural().toLowerCase() + ' match these filters'"
@@ -247,6 +264,7 @@
   [members]="members()"
   [customFields]="customFields()"
   [sprints]="sprints()"
+  [types]="types()"
   (closed)="createOpen.set(false)"
   (created)="onCreated($event)"
 />

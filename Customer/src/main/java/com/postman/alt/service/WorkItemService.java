@@ -14,7 +14,7 @@ public interface WorkItemService {
     WorkItemResponse create(UUID projectId, UUID actorId, WorkItemCreateRequest request);
 
     Page<WorkItemResponse> list(
-            UUID projectId, UUID requesterId, UUID statusId, UUID assigneeId, UUID reporterId, UUID sprintId,
+            UUID projectId, UUID requesterId, UUID statusId, UUID assigneeId, UUID reporterId, UUID sprintId, UUID typeId,
             String priority, String q, Pageable pageable
     );
 
@@ -36,6 +36,10 @@ public interface WorkItemService {
     // Gated by WORK_ITEM_EDIT, logged to the activity trail, no notification
     // (same rationale as updateReporter - this is planning, not assignment).
     WorkItemResponse updateSprint(UUID id, UUID actorId, UUID newSprintId);
+
+    // newTypeId may be null - that clears it back to "no type". Same
+    // gating/logging/no-notification rationale as updateSprint.
+    WorkItemResponse updateType(UUID id, UUID actorId, UUID newTypeId);
 
     void delete(UUID id, UUID actorId);
 

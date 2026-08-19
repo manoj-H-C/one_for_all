@@ -33,6 +33,7 @@ export class WorkItemService {
     if (filter.assigneeId) params = params.set('assigneeId', filter.assigneeId);
     if (filter.reporterId) params = params.set('reporterId', filter.reporterId);
     if (filter.sprintId) params = params.set('sprintId', filter.sprintId);
+    if (filter.typeId) params = params.set('typeId', filter.typeId);
     if (filter.priority) params = params.set('priority', filter.priority);
     if (filter.q) params = params.set('q', filter.q);
     return this.http.get<Page<WorkItemResponse>>(`${BASE}/projects/${projectId}/work-items`, { params });
@@ -60,6 +61,10 @@ export class WorkItemService {
 
   updateSprint(id: string, sprintId: string | null): Observable<WorkItemResponse> {
     return this.http.patch<WorkItemResponse>(`${BASE}/work-items/${id}/sprint`, { sprintId });
+  }
+
+  updateType(id: string, typeId: string | null): Observable<WorkItemResponse> {
+    return this.http.patch<WorkItemResponse>(`${BASE}/work-items/${id}/type`, { typeId });
   }
 
   delete(id: string): Observable<void> {
