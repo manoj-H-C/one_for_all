@@ -19,7 +19,7 @@ public final class WorkItemSpecifications {
     }
 
     public static Specification<WorkItem> forListing(
-            UUID projectId, UUID statusId, UUID assigneeId, Priority priority, String searchText
+            UUID projectId, UUID statusId, UUID assigneeId, UUID reporterId, UUID sprintId, Priority priority, String searchText
     ) {
         List<Specification<WorkItem>> specs = new ArrayList<>();
         specs.add((root, query, cb) -> cb.isNull(root.get("deletedAt")));
@@ -30,6 +30,12 @@ public final class WorkItemSpecifications {
         }
         if (assigneeId != null) {
             specs.add((root, query, cb) -> cb.equal(root.get("assignee").get("id"), assigneeId));
+        }
+        if (reporterId != null) {
+            specs.add((root, query, cb) -> cb.equal(root.get("reporter").get("id"), reporterId));
+        }
+        if (sprintId != null) {
+            specs.add((root, query, cb) -> cb.equal(root.get("sprint").get("id"), sprintId));
         }
         if (priority != null) {
             specs.add((root, query, cb) -> cb.equal(root.get("priority"), priority));

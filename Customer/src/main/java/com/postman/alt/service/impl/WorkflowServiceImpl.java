@@ -50,7 +50,7 @@ public class WorkflowServiceImpl implements WorkflowService {
 
     @Override
     public List<StatusCategoryResponse> listCategories(UUID projectId, UUID requesterId) {
-        projectAccessService.requireMember(projectId, requesterId);
+        projectAccessService.requireMemberOrOwner(projectId, requesterId);
         return statusCategoryRepository.findByProjectId(projectId).stream().map(this::toResponse).toList();
     }
 
@@ -95,7 +95,7 @@ public class WorkflowServiceImpl implements WorkflowService {
     @Override
     @Transactional(readOnly = true)
     public List<WorkflowStatusResponse> listStatuses(UUID projectId, UUID requesterId) {
-        projectAccessService.requireMember(projectId, requesterId);
+        projectAccessService.requireMemberOrOwner(projectId, requesterId);
         return workflowStatusRepository.findByProjectIdOrderBySortOrderAsc(projectId).stream()
                 .map(this::toResponse)
                 .toList();

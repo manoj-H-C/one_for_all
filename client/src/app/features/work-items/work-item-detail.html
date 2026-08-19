@@ -1,0 +1,133 @@
+@if (loading()) {
+  <p class="text-sm text-slate-400">Loading…</p>
+} @else if (item(); as it) {
+  <div class="mx-auto max-w-4xl">
+    <a [routerLink]="['/projects', projectId, 'board']" class="mb-4 inline-block text-sm text-slate-500 hover:text-slate-700">
+      ← Back to board
+    </a>
+
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div class="lg:col-span-2 flex flex-col gap-4">
+        <div class="card p-5">
+          <input
+            type="text"
+            class="w-full border-none p-0 text-xl font-semibold text-slate-900 focus:outline-none focus:ring-0 disabled:bg-white"
+            [(ngModel)]="title"
+            [disabled]="!canEdit()"
+            placeholder="Title"
+          />
+          <textarea
+            class="input mt-3"
+            rows="4"
+            placeholder="Add a description…"
+            [(ngModel)]="description"
+            [disabled]="!canEdit()"
+          ></textarea>
+
+          @if (customFields().length > 0) {
+            <div class="mt-4 border-t border-slate-100 pt-4">
+              <app-custom-fields-form
+                [fields]="customFields()"
+                [members]="members()"
+                [(values)]="customFieldValues"
+              />
+            </div>
+          }
+
+          @if (canEdit()) {
+            <div class="mt-4 flex justify-end">
+              <button type="button" class="btn-primary" [disabled]="saving()" (click)="save()">
+                {{ saving() ? 'Saving…' : 'Save changes' }}
+              </button>
+            </div>
+          }
+        </div>
+
+        <div class="card p-5">
+          <div class="mb-4 flex gap-1 border-b border-slate-100 pb-2 text-sm">
+            <button type="button" class="rounded-lg px-3 py-1.5 font-medium" [class.bg-slate-100]="activeTab() === 'comments'" (click)="activeTab.set('comments')">Comments</button>
+            <button type="button" class="rounded-lg px-3 py-1.5 font-medium" [class.bg-slate-100]="activeTab() === 'attachments'" (click)="activeTab.set('attachments')">Attachments</button>
+            <button type="button" class="rounded-lg px-3 py-1.5 font-medium" [class.bg-slate-100]="activeTab() === 'links'" (click)="activeTab.set('links')">Links</button>
+            <button type="button" class="rounded-lg px-3 py-1.5 font-medium" [class.bg-slate-100]="activeTab() === 'activity'" (click)="activeTab.set('activity')">Activity</button>
+          </div>
+
+          @switch (activeTab()) {
+            @case ('comments') {
+              <app-comments-tab [workItemId]="workItemId" [canComment]="canComment()" [members]="members()" />
+            }
+            @case ('attachments') {
+              <app-attachments-tab [workItemId]="workItemId" [canEdit]="canEdit()" />
+            }
+            @case ('links') {
+              <app-links-tab [workItemId]="workItemId" [projectId]="projectId" [canEdit]="canEdit()" />
+            }
+            @case ('activity') {
+              <app-activity-tab [workItemId]="workItemId" />
+            }
+          }
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <div class="card flex flex-col gap-4 p-5">
+          <div>
+            <label class="label">Status</label>
+            <select class="input" [ngModel]="it.statusId" [disabled]="!canEdit()" (ngModelChange)="changeStatus($event)">
+              @for (s of statuses(); track s.id) {
+                <option [value]="s.id">{{ s.name }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="label">Priority</label>
+            <select class="input" [(ngModel)]="priority" [disabled]="!canEdit()">
+              @for (p of priorities; track p) {
+                <option [value]="p">{{ p }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="label">Assignee</label>
+            <select class="input" [ngModel]="it.assigneeId ?? ''" [disabled]="!canAssign()" (ngModelChange)="changeAssignee($event)">
+              <option value="">Unassigned</option>
+              @for (m of members(); track m.userId) {
+                <option [value]="m.userId">{{ m.name }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="label">Reporter</label>
+            <select class="input" [ngModel]="it.reporterId ?? ''" [disabled]="!canEdit()" (ngModelChange)="changeReporter($event)">
+              <option value="">Unassigned</option>
+              @for (m of members(); track m.userId) {
+                <option [value]="m.userId">{{ m.name }}</option>
+              }
+            </select>
+          </div>
+          @if (sprints().length > 0) {
+            <div>
+              <label class="label">Sprint</label>
+              <select class="input" [ngModel]="it.sprintId ?? ''" [disabled]="!canEdit()" (ngModelChange)="changeSprint($event)">
+                <option value="">Backlog</option>
+                @for (s of sprints(); track s.id) {
+                  <option [value]="s.id">{{ s.name }}</option>
+                }
+              </select>
+            </div>
+          }
+          <div>
+            <label class="label">Due date</label>
+            <input type="date" class="input" [(ngModel)]="dueDate" [disabled]="!canEdit()" />
+          </div>
+          <div class="border-t border-slate-100 pt-3 text-xs text-slate-400">
+            <p>Created {{ it.createdAt | date: 'medium' }}</p>
+            <p>Updated {{ it.updatedAt | date: 'medium' }}</p>
+          </div>
+          @if (canDelete()) {
+            <button type="button" class="btn-danger w-full" (click)="remove()">Delete work item</button>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+}

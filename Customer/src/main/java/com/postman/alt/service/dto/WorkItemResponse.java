@@ -12,6 +12,8 @@ public record WorkItemResponse(
         String statusName,
         UUID assigneeId,
         UUID reporterId,
+        UUID sprintId,
+        String sprintName,
         String title,
         String description,
         String priority,

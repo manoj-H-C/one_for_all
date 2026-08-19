@@ -45,7 +45,7 @@ public class AttachmentServiceImpl implements AttachmentService {
     @Transactional(readOnly = true)
     public List<AttachmentResponse> list(UUID workItemId, UUID requesterId) {
         WorkItem item = getWorkItem(workItemId);
-        projectAccessService.requireMember(item.getProject().getId(), requesterId);
+        projectAccessService.requireMemberOrOwner(item.getProject().getId(), requesterId);
         return attachmentRepository.findByWorkItemIdOrderByCreatedAtAsc(workItemId).stream().map(this::toResponse).toList();
     }
 

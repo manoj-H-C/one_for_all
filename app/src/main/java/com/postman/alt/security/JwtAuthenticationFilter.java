@@ -1,5 +1,6 @@
 package com.postman.alt.security;
 
+import com.postman.alt.dto.ApiResponse;
 import com.postman.alt.exception.ApiException;
 import com.postman.alt.service.AuthService;
 import io.jsonwebtoken.Claims;
@@ -8,15 +9,18 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.MediaType;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -37,12 +41,22 @@ import java.util.UUID;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    // the only two endpoints a mustResetPassword account can still reach -
+    // /auth/me so the client can see the flag, /auth/change-password so it
+    // can clear it. Everything else 403s below, regardless of what the
+    // client-side route guard does.
+    private static final Set<String> ALLOWED_WHILE_RESET_PENDING = Set.of(
+            "/api/auth/me", "/api/auth/change-password"
+    );
+
     private final JwtService jwtService;
     private final AuthService authService;
+    private final ObjectMapper objectMapper;
 
-    public JwtAuthenticationFilter(JwtService jwtService, AuthService authService) {
+    public JwtAuthenticationFilter(JwtService jwtService, AuthService authService, ObjectMapper objectMapper) {
         this.jwtService = jwtService;
         this.authService = authService;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -64,6 +78,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 UUID userId = jwtService.extractUserId(claims);
                 authService.assertCurrentTokenVersion(userId, jwtService.extractTokenVersion(claims));
 
+                if (authService.requiresPasswordReset(userId) && !ALLOWED_WHILE_RESET_PENDING.contains(request.getRequestURI())) {
+                    writePasswordResetRequired(response);
+                    return;
+                }
+
                 var authentication = new UsernamePasswordAuthenticationToken(
                         userId, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))
                 );
@@ -75,5 +94,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void writePasswordResetRequired(HttpServletResponse response) throws IOException {
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        objectMapper.writeValue(response.getWriter(), ApiResponse.error(403, "Password reset required"));
     }
 }

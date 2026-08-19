@@ -47,7 +47,7 @@ public class WorkItemLinkServiceImpl implements WorkItemLinkService {
     @Transactional(readOnly = true)
     public List<WorkItemLinkResponse> list(UUID workItemId, UUID requesterId) {
         WorkItem item = getWorkItem(workItemId);
-        projectAccessService.requireMember(item.getProject().getId(), requesterId);
+        projectAccessService.requireMemberOrOwner(item.getProject().getId(), requesterId);
 
         return Stream.concat(
                         workItemLinkRepository.findBySourceWorkItemId(workItemId).stream(),

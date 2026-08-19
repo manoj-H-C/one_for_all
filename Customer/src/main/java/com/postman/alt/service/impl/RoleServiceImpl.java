@@ -59,7 +59,7 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional(readOnly = true)
     public List<RoleResponse> list(UUID projectId, UUID requesterId) {
-        projectAccessService.requireMember(projectId, requesterId);
+        projectAccessService.requireMemberOrOwner(projectId, requesterId);
 
         List<ProjectRole> roles = projectRoleRepository.findByProjectId(projectId);
         Map<UUID, Set<String>> permissionCodesByRole = projectRolePermissionRepository.findByRole_ProjectId(projectId).stream()

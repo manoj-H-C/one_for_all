@@ -11,10 +11,13 @@ import com.postman.alt.repository.OrganizationInvitationRepository;
 import com.postman.alt.service.OrganizationService;
 import com.postman.alt.service.dto.OrganizationInvitationCreateRequest;
 import com.postman.alt.service.dto.OrganizationInvitationResponse;
+import com.postman.alt.service.dto.OrganizationMemberCreateRequest;
+import com.postman.alt.service.dto.OrganizationMemberCreateResponse;
 import com.postman.alt.service.dto.OrganizationMemberResponse;
 import com.postman.alt.service.support.TokenGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,13 +33,16 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     private final AppUserRepository appUserRepository;
     private final OrganizationInvitationRepository organizationInvitationRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public OrganizationServiceImpl(
             AppUserRepository appUserRepository,
-            OrganizationInvitationRepository organizationInvitationRepository
+            OrganizationInvitationRepository organizationInvitationRepository,
+            PasswordEncoder passwordEncoder
     ) {
         this.appUserRepository = appUserRepository;
         this.organizationInvitationRepository = organizationInvitationRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -68,6 +74,38 @@ public class OrganizationServiceImpl implements OrganizationService {
         return appUserRepository.findByOrganizationId(requester.getOrganization().getId()).stream()
                 .map(this::toMemberResponse)
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public OrganizationMemberCreateResponse createMember(UUID requesterId, OrganizationMemberCreateRequest request) {
+        AppUser requester = requireAdmin(requesterId);
+
+        // same global-uniqueness rule as createInvitation/register - a
+        // person can only ever belong to one org.
+        if (appUserRepository.findByEmail(request.email()).isPresent()) {
+            throw new ConflictException("An account with this email already exists");
+        }
+
+        String temporaryPassword = TokenGenerator.generateTemporaryPassword();
+        AppUser user = new AppUser(
+                requester.getOrganization(), request.email(), request.name(),
+                passwordEncoder.encode(temporaryPassword)
+        );
+        user.setCanCreateProjects(request.canCreateProjects());
+        user.setCanManageMembers(request.canManageMembers());
+        user.setMustResetPassword(true);
+        user = appUserRepository.save(user);
+
+        // never log the password itself, only that an account was created.
+        log.info("Org member {} (id={}) created directly by {} with a temporary password",
+                user.getEmail(), user.getId(), requesterId);
+
+        return new OrganizationMemberCreateResponse(
+                user.getId(), user.getName(), user.getEmail(),
+                user.isCanCreateProjects(), user.isCanManageMembers(),
+                temporaryPassword, user.getCreatedAt()
+        );
     }
 
     @Override

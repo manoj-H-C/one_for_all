@@ -7,6 +7,8 @@ import com.postman.alt.service.dto.AuthResponse;
 import com.postman.alt.service.dto.OrganizationInvitationAcceptRequest;
 import com.postman.alt.service.dto.OrganizationInvitationCreateRequest;
 import com.postman.alt.service.dto.OrganizationInvitationResponse;
+import com.postman.alt.service.dto.OrganizationMemberCreateRequest;
+import com.postman.alt.service.dto.OrganizationMemberCreateResponse;
 import com.postman.alt.service.dto.OrganizationMemberResponse;
 import com.postman.alt.service.dto.UpdateMemberManagementAccessRequest;
 import com.postman.alt.service.dto.UpdateProjectCreationAccessRequest;
@@ -40,6 +42,15 @@ public class OrganizationController {
     @GetMapping("/api/organizations/members")
     public List<OrganizationMemberResponse> listMembers() {
         return organizationService.listMembers(CurrentUser.id());
+    }
+
+    @PostMapping("/api/organizations/members")
+    public ResponseEntity<OrganizationMemberCreateResponse> createMember(
+            @Valid @RequestBody OrganizationMemberCreateRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                organizationService.createMember(CurrentUser.id(), request)
+        );
     }
 
     @PatchMapping("/api/users/{userId}/project-creation-access")

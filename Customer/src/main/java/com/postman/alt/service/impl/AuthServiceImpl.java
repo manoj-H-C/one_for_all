@@ -17,6 +17,7 @@ import com.postman.alt.repository.UserTokenRepository;
 import com.postman.alt.security.JwtService;
 import com.postman.alt.service.AuthService;
 import com.postman.alt.service.dto.AuthResponse;
+import com.postman.alt.service.dto.ChangePasswordRequest;
 import com.postman.alt.service.dto.ForgotPasswordRequest;
 import com.postman.alt.service.dto.LoginRequest;
 import com.postman.alt.service.dto.OrganizationInvitationAcceptRequest;
@@ -151,6 +152,32 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    public boolean requiresPasswordReset(UUID userId) {
+        return appUserRepository.findById(userId)
+                .map(AppUser::isMustResetPassword)
+                .orElse(false);
+    }
+
+    @Override
+    @Transactional
+    public AuthResponse changePassword(UUID userId, ChangePasswordRequest request) {
+        AppUser user = appUserRepository.findById(userId)
+                .orElseThrow(() -> new UnauthorizedException("Account no longer exists"));
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+            throw new UnauthorizedException("Current password is incorrect");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        user.setMustResetPassword(false);
+        // same as resetPassword() - invalidates every token issued before
+        // this point, then issues a fresh pair so the caller doesn't need a
+        // separate login round-trip right after changing their password.
+        user.bumpTokenVersion();
+
+        return issueTokenPair(user);
+    }
+
+    @Override
     @Transactional
     public void forgotPassword(ForgotPasswordRequest request) {
         authRateLimiter.assertPasswordResetAllowed(request.email());
@@ -262,6 +289,7 @@ public class AuthServiceImpl implements AuthService {
                 user.isCanCreateProjects(),
                 user.isCanManageMembers(),
                 user.isEmailVerified(),
+                user.isMustResetPassword(),
                 user.getCreatedAt()
         );
     }

@@ -52,9 +52,15 @@ public class WorkItem {
     @JoinColumn(name = "assignee_id")
     private AppUser assignee;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "reporter_id", nullable = false)
+    // optional - null means unassigned, same convention as assignee.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reporter_id")
     private AppUser reporter;
+
+    // optional - see Sprint's own javadoc. null means "backlog"/unscheduled.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sprint_id")
+    private Sprint sprint;
 
     @Column(nullable = false)
     private String title;
@@ -135,6 +141,18 @@ public class WorkItem {
 
     public AppUser getReporter() {
         return reporter;
+    }
+
+    public void setReporter(AppUser reporter) {
+        this.reporter = reporter;
+    }
+
+    public Sprint getSprint() {
+        return sprint;
+    }
+
+    public void setSprint(Sprint sprint) {
+        this.sprint = sprint;
     }
 
     public String getTitle() {

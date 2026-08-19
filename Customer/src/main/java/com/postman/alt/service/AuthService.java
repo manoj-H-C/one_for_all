@@ -1,6 +1,7 @@
 package com.postman.alt.service;
 
 import com.postman.alt.service.dto.AuthResponse;
+import com.postman.alt.service.dto.ChangePasswordRequest;
 import com.postman.alt.service.dto.ForgotPasswordRequest;
 import com.postman.alt.service.dto.LoginRequest;
 import com.postman.alt.service.dto.OrganizationInvitationAcceptRequest;
@@ -42,6 +43,14 @@ public interface AuthService {
      */
     void assertCurrentTokenVersion(UUID userId, int tokenVersion);
 
+    /**
+     * True if this account was created with a temporary password (or
+     * otherwise flagged) and hasn't set a real one yet. Called by
+     * JwtAuthenticationFilter alongside assertCurrentTokenVersion to block
+     * every endpoint except /auth/me and /auth/change-password until it does.
+     */
+    boolean requiresPasswordReset(UUID userId);
+
     // always succeeds regardless of whether the email exists, so the caller
     // can't use this endpoint to enumerate registered accounts.
     void forgotPassword(ForgotPasswordRequest request);
@@ -49,6 +58,12 @@ public interface AuthService {
     // also bumps the account's tokenVersion, invalidating every token
     // (access and refresh) issued before the reset.
     void resetPassword(ResetPasswordRequest request);
+
+    // verifies currentPassword (proof of possession - also how a freshly
+    // created account "confirms" its temporary password), then sets
+    // newPassword, clears mustResetPassword, bumps tokenVersion, and returns
+    // a fresh token pair so the caller can continue without a separate login.
+    AuthResponse changePassword(UUID userId, ChangePasswordRequest request);
 
     void verifyEmail(VerifyEmailRequest request);
 

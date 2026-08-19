@@ -39,7 +39,7 @@ public class CustomFieldServiceImpl implements CustomFieldService {
 
     @Override
     public List<CustomFieldResponse> list(UUID projectId, UUID requesterId) {
-        projectAccessService.requireMember(projectId, requesterId);
+        projectAccessService.requireMemberOrOwner(projectId, requesterId);
         return customFieldDefinitionRepository.findByProjectId(projectId).stream().map(this::toResponse).toList();
     }
 

@@ -3,6 +3,7 @@ package com.postman.alt.web;
 import com.postman.alt.security.CurrentUser;
 import com.postman.alt.service.AuthService;
 import com.postman.alt.service.dto.AuthResponse;
+import com.postman.alt.service.dto.ChangePasswordRequest;
 import com.postman.alt.service.dto.ForgotPasswordRequest;
 import com.postman.alt.service.dto.LoginRequest;
 import com.postman.alt.service.dto.RefreshRequest;
@@ -71,5 +72,12 @@ public class AuthController {
     public ResponseEntity<Void> resendVerification() {
         authService.resendVerification(CurrentUser.id());
         return ResponseEntity.accepted().build();
+    }
+
+    // one of the two endpoints still reachable while mustResetPassword is
+    // true - see JwtAuthenticationFilter.
+    @PostMapping("/change-password")
+    public AuthResponse changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        return authService.changePassword(CurrentUser.id(), request);
     }
 }

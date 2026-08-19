@@ -12,6 +12,7 @@ public record UserResponse(
         boolean canCreateProjects,
         boolean canManageMembers,
         boolean emailVerified,
+        boolean mustResetPassword,
         Instant createdAt
 ) {
 }

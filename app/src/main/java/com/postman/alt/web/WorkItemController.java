@@ -5,7 +5,9 @@ import com.postman.alt.service.WorkItemService;
 import com.postman.alt.service.dto.WorkItemActivityResponse;
 import com.postman.alt.service.dto.WorkItemAssigneeUpdateRequest;
 import com.postman.alt.service.dto.WorkItemCreateRequest;
+import com.postman.alt.service.dto.WorkItemReporterUpdateRequest;
 import com.postman.alt.service.dto.WorkItemResponse;
+import com.postman.alt.service.dto.WorkItemSprintUpdateRequest;
 import com.postman.alt.service.dto.WorkItemStatusUpdateRequest;
 import com.postman.alt.service.dto.WorkItemUpdateRequest;
 import jakarta.validation.Valid;
@@ -52,11 +54,13 @@ public class WorkItemController {
             @PathVariable UUID projectId,
             @RequestParam(required = false) UUID statusId,
             @RequestParam(required = false) UUID assigneeId,
+            @RequestParam(required = false) UUID reporterId,
+            @RequestParam(required = false) UUID sprintId,
             @RequestParam(required = false) String priority,
             @RequestParam(required = false) String q,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        return workItemService.list(projectId, CurrentUser.id(), statusId, assigneeId, priority, q, pageable);
+        return workItemService.list(projectId, CurrentUser.id(), statusId, assigneeId, reporterId, sprintId, priority, q, pageable);
     }
 
     @GetMapping("/api/work-items/{id}")
@@ -77,6 +81,16 @@ public class WorkItemController {
     @PatchMapping("/api/work-items/{id}/assignee")
     public WorkItemResponse updateAssignee(@PathVariable UUID id, @RequestBody WorkItemAssigneeUpdateRequest request) {
         return workItemService.updateAssignee(id, CurrentUser.id(), request.assigneeId());
+    }
+
+    @PatchMapping("/api/work-items/{id}/reporter")
+    public WorkItemResponse updateReporter(@PathVariable UUID id, @Valid @RequestBody WorkItemReporterUpdateRequest request) {
+        return workItemService.updateReporter(id, CurrentUser.id(), request.reporterId());
+    }
+
+    @PatchMapping("/api/work-items/{id}/sprint")
+    public WorkItemResponse updateSprint(@PathVariable UUID id, @RequestBody WorkItemSprintUpdateRequest request) {
+        return workItemService.updateSprint(id, CurrentUser.id(), request.sprintId());
     }
 
     @DeleteMapping("/api/work-items/{id}")

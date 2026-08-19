@@ -5,6 +5,7 @@ import com.postman.alt.entity.Notification;
 import com.postman.alt.entity.Project;
 import com.postman.alt.entity.ProjectMember;
 import com.postman.alt.entity.ProjectMemberId;
+import com.postman.alt.entity.Sprint;
 import com.postman.alt.entity.WorkItem;
 import com.postman.alt.entity.WorkItemActivity;
 import com.postman.alt.entity.WorkflowStatus;
@@ -17,6 +18,7 @@ import com.postman.alt.repository.CustomFieldDefinitionRepository;
 import com.postman.alt.repository.NotificationRepository;
 import com.postman.alt.repository.ProjectMemberRepository;
 import com.postman.alt.repository.ProjectRepository;
+import com.postman.alt.repository.SprintRepository;
 import com.postman.alt.repository.WorkItemActivityRepository;
 import com.postman.alt.repository.WorkItemRepository;
 import com.postman.alt.repository.WorkItemSpecifications;
@@ -50,6 +52,7 @@ public class WorkItemServiceImpl implements WorkItemService {
     private final ProjectAccessService projectAccessService;
     private final CustomFieldDefinitionRepository customFieldDefinitionRepository;
     private final ProjectMemberRepository projectMemberRepository;
+    private final SprintRepository sprintRepository;
 
     public WorkItemServiceImpl(
             WorkItemRepository workItemRepository,
@@ -60,7 +63,8 @@ public class WorkItemServiceImpl implements WorkItemService {
             NotificationRepository notificationRepository,
             ProjectAccessService projectAccessService,
             CustomFieldDefinitionRepository customFieldDefinitionRepository,
-            ProjectMemberRepository projectMemberRepository
+            ProjectMemberRepository projectMemberRepository,
+            SprintRepository sprintRepository
     ) {
         this.workItemRepository = workItemRepository;
         this.projectRepository = projectRepository;
@@ -71,15 +75,18 @@ public class WorkItemServiceImpl implements WorkItemService {
         this.projectAccessService = projectAccessService;
         this.customFieldDefinitionRepository = customFieldDefinitionRepository;
         this.projectMemberRepository = projectMemberRepository;
+        this.sprintRepository = sprintRepository;
     }
 
     @Override
     @Transactional
-    public WorkItemResponse create(UUID projectId, UUID reporterId, WorkItemCreateRequest request) {
-        projectAccessService.requirePermission(projectId, reporterId, "WORK_ITEM_CREATE");
+    public WorkItemResponse create(UUID projectId, UUID actorId, WorkItemCreateRequest request) {
+        projectAccessService.requirePermission(projectId, actorId, "WORK_ITEM_CREATE");
 
         Project project = getProject(projectId);
-        AppUser reporter = getUser(reporterId);
+        AppUser reporter = request.reporterId() != null
+                ? getProjectMemberUser(projectId, request.reporterId())
+                : null;
         WorkflowStatus status = resolveStatus(projectId, request.statusId());
 
         WorkItem item = new WorkItem(project, status, reporter, request.title());
@@ -88,6 +95,9 @@ public class WorkItemServiceImpl implements WorkItemService {
             item.setPriority(Priority.valueOf(request.priority()));
         }
         item.setDueDate(request.dueDate());
+        if (request.sprintId() != null) {
+            item.setSprint(resolveSprint(projectId, request.sprintId()));
+        }
 
         Map<String, Object> customFields = mergeCustomFields(Map.of(), request.customFields());
         CustomFieldValidator.validate(customFieldDefinitionRepository.findByProjectId(projectId), customFields);
@@ -100,7 +110,9 @@ public class WorkItemServiceImpl implements WorkItemService {
         item = workItemRepository.save(item);
 
         if (item.getAssignee() != null) {
-            notifyAssigned(item, reporter);
+            // notifies as whoever actually made this API call, not
+            // necessarily the (possibly different) chosen reporter.
+            notifyAssigned(item, getUser(actorId));
         }
 
         return toResponse(item);
@@ -109,10 +121,10 @@ public class WorkItemServiceImpl implements WorkItemService {
     @Override
     @Transactional(readOnly = true)
     public Page<WorkItemResponse> list(
-            UUID projectId, UUID requesterId, UUID statusId, UUID assigneeId,
+            UUID projectId, UUID requesterId, UUID statusId, UUID assigneeId, UUID reporterId, UUID sprintId,
             String priority, String q, Pageable pageable
     ) {
-        projectAccessService.requireMember(projectId, requesterId);
+        projectAccessService.requireMemberOrOwner(projectId, requesterId);
 
         Priority priorityFilter = null;
         if (priority != null) {
@@ -124,7 +136,7 @@ public class WorkItemServiceImpl implements WorkItemService {
         }
 
         return workItemRepository
-                .findAll(WorkItemSpecifications.forListing(projectId, statusId, assigneeId, priorityFilter, q), pageable)
+                .findAll(WorkItemSpecifications.forListing(projectId, statusId, assigneeId, reporterId, sprintId, priorityFilter, q), pageable)
                 .map(this::toResponse);
     }
 
@@ -132,7 +144,7 @@ public class WorkItemServiceImpl implements WorkItemService {
     @Transactional(readOnly = true)
     public WorkItemResponse get(UUID id, UUID requesterId) {
         WorkItem item = getWorkItem(id);
-        projectAccessService.requireMember(item.getProject().getId(), requesterId);
+        projectAccessService.requireMemberOrOwner(item.getProject().getId(), requesterId);
         return toResponse(item);
     }
 
@@ -231,6 +243,56 @@ public class WorkItemServiceImpl implements WorkItemService {
 
     @Override
     @Transactional
+    public WorkItemResponse updateReporter(UUID id, UUID actorId, UUID newReporterId) {
+        WorkItem item = getWorkItem(id);
+        UUID projectId = item.getProject().getId();
+        projectAccessService.requirePermission(projectId, actorId, "WORK_ITEM_EDIT");
+        AppUser actor = getUser(actorId);
+
+        UUID oldReporterId = item.getReporter() != null ? item.getReporter().getId() : null;
+        if (Objects.equals(oldReporterId, newReporterId)) {
+            return toResponse(item);
+        }
+
+        AppUser newReporter = newReporterId != null
+                ? getProjectMemberUser(projectId, newReporterId)
+                : null;
+        logChange(
+                item, actor, "reporter",
+                item.getReporter() != null ? item.getReporter().getEmail() : null,
+                newReporter != null ? newReporter.getEmail() : null
+        );
+        item.setReporter(newReporter);
+
+        return toResponse(item);
+    }
+
+    @Override
+    @Transactional
+    public WorkItemResponse updateSprint(UUID id, UUID actorId, UUID newSprintId) {
+        WorkItem item = getWorkItem(id);
+        UUID projectId = item.getProject().getId();
+        projectAccessService.requirePermission(projectId, actorId, "WORK_ITEM_EDIT");
+        AppUser actor = getUser(actorId);
+
+        UUID oldSprintId = item.getSprint() != null ? item.getSprint().getId() : null;
+        if (Objects.equals(oldSprintId, newSprintId)) {
+            return toResponse(item);
+        }
+
+        Sprint newSprint = newSprintId != null ? resolveSprint(projectId, newSprintId) : null;
+        logChange(
+                item, actor, "sprint",
+                item.getSprint() != null ? item.getSprint().getName() : "Backlog",
+                newSprint != null ? newSprint.getName() : "Backlog"
+        );
+        item.setSprint(newSprint);
+
+        return toResponse(item);
+    }
+
+    @Override
+    @Transactional
     public void delete(UUID id, UUID actorId) {
         WorkItem item = getWorkItem(id);
         projectAccessService.requirePermission(item.getProject().getId(), actorId, "WORK_ITEM_DELETE");
@@ -241,7 +303,7 @@ public class WorkItemServiceImpl implements WorkItemService {
     @Transactional(readOnly = true)
     public Page<WorkItemActivityResponse> getActivity(UUID id, UUID requesterId, Pageable pageable) {
         WorkItem item = getWorkItem(id);
-        projectAccessService.requireMember(item.getProject().getId(), requesterId);
+        projectAccessService.requireMemberOrOwner(item.getProject().getId(), requesterId);
         return workItemActivityRepository.findByWorkItemIdOrderByCreatedAtDesc(id, pageable)
                 .map(a -> new WorkItemActivityResponse(
                         a.getId(), a.getActor().getId(), a.getActor().getName(),
@@ -275,6 +337,12 @@ public class WorkItemServiceImpl implements WorkItemService {
         return workflowStatusRepository.findByProjectIdOrderBySortOrderAsc(projectId).stream()
                 .findFirst()
                 .orElseThrow(() -> new BadRequestException("Project has no workflow statuses configured"));
+    }
+
+    private Sprint resolveSprint(UUID projectId, UUID sprintId) {
+        return sprintRepository.findById(sprintId)
+                .filter(s -> s.getProject().getId().equals(projectId))
+                .orElseThrow(() -> new ResourceNotFoundException("Sprint", sprintId));
     }
 
     private void notifyAssigned(WorkItem item, AppUser actor) {
@@ -320,7 +388,9 @@ public class WorkItemServiceImpl implements WorkItemService {
                 item.getStatus().getId(),
                 item.getStatus().getName(),
                 item.getAssignee() != null ? item.getAssignee().getId() : null,
-                item.getReporter().getId(),
+                item.getReporter() != null ? item.getReporter().getId() : null,
+                item.getSprint() != null ? item.getSprint().getId() : null,
+                item.getSprint() != null ? item.getSprint().getName() : null,
                 item.getTitle(),
                 item.getDescription(),
                 item.getPriority().name(),

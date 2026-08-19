@@ -61,6 +61,15 @@ public class AppUser {
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified = false;
 
+    // set when an admin creates this account directly with a system-generated
+    // temporary password (see OrganizationServiceImpl.createMember) - forces
+    // AuthServiceImpl.changePassword before JwtAuthenticationFilter will let
+    // any other authenticated endpoint through. Never set for self-registered
+    // or invitation-accepted accounts, since those already chose their own
+    // password.
+    @Column(name = "must_reset_password", nullable = false)
+    private boolean mustResetPassword = false;
+
     // embedded as a claim in every issued JWT - bumping this invalidates
     // every token issued before the bump (see AuthServiceImpl.resetPassword),
     // without needing a token table to check on every request.
@@ -139,6 +148,14 @@ public class AppUser {
 
     public void setEmailVerified(boolean emailVerified) {
         this.emailVerified = emailVerified;
+    }
+
+    public boolean isMustResetPassword() {
+        return mustResetPassword;
+    }
+
+    public void setMustResetPassword(boolean mustResetPassword) {
+        this.mustResetPassword = mustResetPassword;
     }
 
     public int getTokenVersion() {

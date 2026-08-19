@@ -52,22 +52,23 @@ public class ProjectAccessServiceImpl implements ProjectAccessService {
     }
 
     @Override
-    public void requirePermission(UUID projectId, UUID userId, String permissionCode) {
-        AppUser user = appUserRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("AppUser", userId));
+    public void requireMemberOrOwner(UUID projectId, UUID userId) {
+        if (isOwnerOfProjectsOrg(projectId, userId)) {
+            return;
+        }
+        requireMember(projectId, userId);
+    }
 
+    @Override
+    public void requirePermission(UUID projectId, UUID userId, String permissionCode) {
         // owner bypasses per-role permission checks, but only within their
         // OWN organization - without this org check, isOwner()=true (true
         // for every self-registered user, on their own brand-new org) would
         // let them bypass permission checks on ANY project in the system,
         // not just their own org's. A different org's owner still needs to
         // be a member of this project like anyone else, checked below.
-        if (user.isOwner()) {
-            Project project = projectRepository.findByIdAndDeletedAtIsNull(projectId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
-            if (project.getOrganization().getId().equals(user.getOrganization().getId())) {
-                return;
-            }
+        if (isOwnerOfProjectsOrg(projectId, userId)) {
+            return;
         }
 
         ProjectMember member = requireMember(projectId, userId);
@@ -76,5 +77,21 @@ public class ProjectAccessServiceImpl implements ProjectAccessService {
         if (!granted) {
             throw new ForbiddenException("Missing permission: " + permissionCode);
         }
+    }
+
+    // shared by requirePermission and requireMemberOrOwner - true if userId
+    // is the owner of the organization projectId belongs to. Never throws
+    // for an unknown/deleted project here; callers that need a 404 for that
+    // case (requirePermission, transitively requireMember) still get one via
+    // requireMember's own lookup once this returns false.
+    private boolean isOwnerOfProjectsOrg(UUID projectId, UUID userId) {
+        AppUser user = appUserRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("AppUser", userId));
+        if (!user.isOwner()) {
+            return false;
+        }
+        return projectRepository.findByIdAndDeletedAtIsNull(projectId)
+                .map(project -> project.getOrganization().getId().equals(user.getOrganization().getId()))
+                .orElse(false);
     }
 }
