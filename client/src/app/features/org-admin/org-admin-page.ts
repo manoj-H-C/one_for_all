@@ -30,8 +30,8 @@ import { EmptyStateComponent } from '../../shared/ui/empty-state';
       </div>
 
       @if (revealed(); as r) {
-        <div class="card flex items-start justify-between gap-4 border-emerald-200 bg-emerald-50 p-5">
-          <div>
+        <div class="card flex flex-wrap items-start justify-between gap-4 border-emerald-200 bg-emerald-50 p-5">
+          <div class="min-w-0">
             <p class="text-sm font-medium text-emerald-900">{{ r.name }} ({{ r.email }}) was created.</p>
             <p class="mt-1 text-sm text-emerald-800">
               Temporary password: <span class="rounded bg-white px-2 py-0.5 font-mono font-semibold">{{ r.temporaryPassword }}</span>
@@ -125,7 +125,8 @@ import { EmptyStateComponent } from '../../shared/ui/empty-state';
             </div>
           }
         </div>
-        <table class="w-full text-sm">
+        <div class="overflow-x-auto">
+        <table class="w-full min-w-[560px] text-sm">
           <tbody class="divide-y divide-slate-100">
             @for (member of filteredMembers(); track member.id) {
               <tr class="transition-colors hover:bg-slate-50/70">
@@ -193,6 +194,7 @@ import { EmptyStateComponent } from '../../shared/ui/empty-state';
             }
           </tbody>
         </table>
+        </div>
       </div>
 
       @if (invitations().length > 0) {
@@ -200,7 +202,8 @@ import { EmptyStateComponent } from '../../shared/ui/empty-state';
           <div class="border-b border-slate-100 px-5 py-3.5">
             <p class="text-sm font-semibold text-slate-700">Pending invitations</p>
           </div>
-          <table class="w-full text-sm">
+          <div class="overflow-x-auto">
+          <table class="w-full min-w-[480px] text-sm">
             <tbody class="divide-y divide-slate-100">
               @for (inv of invitations(); track inv.id) {
                 <tr class="transition-colors hover:bg-slate-50/70">
@@ -229,6 +232,7 @@ import { EmptyStateComponent } from '../../shared/ui/empty-state';
               }
             </tbody>
           </table>
+          </div>
         </div>
       }
     </div>

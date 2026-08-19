@@ -39,14 +39,14 @@ const LINK_TYPE_LABEL: Record<string, string> = {
       }
 
       @for (link of links(); track link.id) {
-        <div class="flex items-center justify-between rounded-xl border border-slate-200 p-3 text-sm">
-          <p>
+        <div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 p-3 text-sm">
+          <p class="min-w-0 break-all">
             This item <span class="font-medium">{{ labelFor(link.linkType) }}</span>
             <a [routerLink]="['/projects', projectId(), 'work-items', link.targetWorkItemId]" class="text-primary-700 hover:underline">
               {{ link.targetWorkItemId }}
             </a>
           </p>
-          <button type="button" class="text-xs text-slate-400 hover:text-red-600" (click)="remove(link)">Remove</button>
+          <button type="button" class="shrink-0 text-xs text-slate-400 hover:text-red-600" (click)="remove(link)">Remove</button>
         </div>
       } @empty {
         <p class="text-sm text-slate-400">No linked {{ currentProjectStore.itemLabelPlural().toLowerCase() }} yet.</p>

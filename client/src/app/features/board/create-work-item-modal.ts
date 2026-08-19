@@ -27,7 +27,7 @@ import { CustomFieldsFormComponent } from '../../shared/ui/custom-fields-form';
           <textarea id="description" class="input" rows="3" [(ngModel)]="description" name="description"></textarea>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label class="label" for="statusId">Status</label>
             <select
@@ -52,7 +52,7 @@ import { CustomFieldsFormComponent } from '../../shared/ui/custom-fields-form';
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label class="label" for="assigneeId">Assignee</label>
             <select id="assigneeId" class="input" [(ngModel)]="assigneeId" name="assigneeId">
@@ -73,7 +73,7 @@ import { CustomFieldsFormComponent } from '../../shared/ui/custom-fields-form';
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label class="label" for="dueDate">Due date</label>
             <input id="dueDate" type="date" class="input" [(ngModel)]="dueDate" name="dueDate" />

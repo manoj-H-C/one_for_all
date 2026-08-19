@@ -127,7 +127,7 @@ const FIELD_TYPE_META: Record<FieldType, FieldTypeMeta> = {
 
         <div>
           <label class="label">Type</label>
-          <div class="grid grid-cols-4 gap-2">
+          <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
             @for (t of fieldTypes; track t) {
               <button
                 type="button"

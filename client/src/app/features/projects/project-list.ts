@@ -37,11 +37,11 @@ import { colorFor } from '../../shared/util/color-hash';
           </div>
         </div>
 
-        <div class="ml-auto flex items-center gap-2.5">
+        <div class="ml-auto flex w-full flex-wrap items-center gap-2.5 sm:w-auto">
           @if (projects().length > 0) {
-            <div class="relative">
+            <div class="relative min-w-0 flex-1 sm:w-64 sm:flex-none">
               <app-icon name="search" [size]="16" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input type="text" class="input w-52 pl-9 sm:w-64" placeholder="Search projects…" [ngModel]="query()" (ngModelChange)="query.set($event)" />
+              <input type="text" class="input w-full pl-9" placeholder="Search projects…" [ngModel]="query()" (ngModelChange)="query.set($event)" />
             </div>
           }
           @if (authStore.canCreateProjects()) {

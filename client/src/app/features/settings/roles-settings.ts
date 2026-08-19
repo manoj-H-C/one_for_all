@@ -96,7 +96,7 @@ import { colorFor } from '../../shared/util/color-hash';
 
     <app-modal [open]="modalOpen()" [title]="editingRole() ? 'Edit role' : 'New role'" [width]="640" (closed)="modalOpen.set(false)">
       <div class="flex flex-col gap-4">
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label class="label">Name</label>
             <input type="text" class="input" placeholder="Electrician" [(ngModel)]="name" />

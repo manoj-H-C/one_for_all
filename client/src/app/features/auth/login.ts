@@ -37,7 +37,7 @@ import { IconComponent } from '../../shared/ui/icon';
       </button>
     </form>
 
-    <div class="mt-5 flex items-center justify-between border-t border-slate-100 pt-5 text-sm">
+    <div class="mt-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-slate-100 pt-5 text-sm">
       <a routerLink="/forgot-password" class="font-medium text-primary-700 hover:text-primary-800 hover:underline">Forgot password?</a>
       <a routerLink="/register" class="font-medium text-primary-700 hover:text-primary-800 hover:underline">Create an organization</a>
     </div>

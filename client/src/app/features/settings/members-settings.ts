@@ -114,7 +114,8 @@ import { EmptyStateComponent } from '../../shared/ui/empty-state';
             </div>
           }
         </div>
-        <table class="w-full text-sm">
+        <div class="overflow-x-auto">
+        <table class="w-full min-w-[480px] text-sm">
           <tbody class="divide-y divide-slate-100">
             @for (member of filteredMembers(); track member.userId) {
               <tr class="transition-colors hover:bg-slate-50/70">
@@ -165,6 +166,7 @@ import { EmptyStateComponent } from '../../shared/ui/empty-state';
             }
           </tbody>
         </table>
+        </div>
       </div>
 
       @if (canInvite() && invitations().length > 0) {
@@ -172,7 +174,8 @@ import { EmptyStateComponent } from '../../shared/ui/empty-state';
           <div class="border-b border-slate-100 px-5 py-3.5">
             <p class="text-sm font-semibold text-slate-700">Pending invitations</p>
           </div>
-          <table class="w-full text-sm">
+          <div class="overflow-x-auto">
+          <table class="w-full min-w-[420px] text-sm">
             <tbody class="divide-y divide-slate-100">
               @for (inv of invitations(); track inv.id) {
                 <tr class="transition-colors hover:bg-slate-50/70">
@@ -199,6 +202,7 @@ import { EmptyStateComponent } from '../../shared/ui/empty-state';
               }
             </tbody>
           </table>
+          </div>
         </div>
       }
     </div>

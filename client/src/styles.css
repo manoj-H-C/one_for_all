@@ -111,6 +111,15 @@ body {
   background: linear-gradient(180deg, var(--color-rail-900), var(--color-rail-950));
 }
 
+/* collapse-to-icons only applies at the lg breakpoint and up - the mobile
+   drawer always renders full-width regardless of the desktop preference.
+   A plain class (rather than an inline lg:w-[...] binding) sidesteps
+   Angular's template parser treating the arbitrary-value brackets as the
+   end of the [class.x] binding name. */
+@utility sidebar-collapsed-width {
+  @apply lg:w-[76px];
+}
+
 @utility nav-item {
   @apply relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300/90 transition-all duration-150;
 }

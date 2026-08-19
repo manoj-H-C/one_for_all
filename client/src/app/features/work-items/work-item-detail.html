@@ -44,11 +44,11 @@
         </div>
 
         <div class="card p-5">
-          <div class="mb-4 flex gap-1 border-b border-slate-100 pb-2 text-sm">
-            <button type="button" class="rounded-lg px-3 py-1.5 font-medium" [class.bg-slate-100]="activeTab() === 'comments'" (click)="activeTab.set('comments')">Comments</button>
-            <button type="button" class="rounded-lg px-3 py-1.5 font-medium" [class.bg-slate-100]="activeTab() === 'attachments'" (click)="activeTab.set('attachments')">Attachments</button>
-            <button type="button" class="rounded-lg px-3 py-1.5 font-medium" [class.bg-slate-100]="activeTab() === 'links'" (click)="activeTab.set('links')">Links</button>
-            <button type="button" class="rounded-lg px-3 py-1.5 font-medium" [class.bg-slate-100]="activeTab() === 'activity'" (click)="activeTab.set('activity')">Activity</button>
+          <div class="mb-4 flex gap-1 overflow-x-auto border-b border-slate-100 pb-2 text-sm">
+            <button type="button" class="shrink-0 rounded-lg px-3 py-1.5 font-medium" [class.bg-slate-100]="activeTab() === 'comments'" (click)="activeTab.set('comments')">Comments</button>
+            <button type="button" class="shrink-0 rounded-lg px-3 py-1.5 font-medium" [class.bg-slate-100]="activeTab() === 'attachments'" (click)="activeTab.set('attachments')">Attachments</button>
+            <button type="button" class="shrink-0 rounded-lg px-3 py-1.5 font-medium" [class.bg-slate-100]="activeTab() === 'links'" (click)="activeTab.set('links')">Links</button>
+            <button type="button" class="shrink-0 rounded-lg px-3 py-1.5 font-medium" [class.bg-slate-100]="activeTab() === 'activity'" (click)="activeTab.set('activity')">Activity</button>
           </div>
 
           @switch (activeTab()) {

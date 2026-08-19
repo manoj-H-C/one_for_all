@@ -1,12 +1,19 @@
-<div
+﻿<div
   class="flex h-screen overflow-hidden"
   style="background: radial-gradient(1100px 560px at 15% -8%, rgba(139,92,246,0.06), transparent 60%), #f7f7fb"
 >
+  <!-- Mobile drawer backdrop -->
+  @if (sidebar.mobileOpen()) {
+    <div class="fixed inset-0 z-[25] bg-slate-900/50 lg:hidden" (click)="sidebar.closeMobile()"></div>
+  }
+
   <!-- Sidebar -->
   <aside
-    class="sidebar-surface relative flex shrink-0 flex-col transition-[width] duration-200 ease-out"
+    class="sidebar-surface fixed inset-y-0 left-0 z-30 flex w-[264px] shrink-0 flex-col transition-transform duration-200 ease-out lg:relative lg:z-auto lg:translate-x-0 lg:transition-[width]"
     style="box-shadow: 6px 0 28px -14px rgb(11 16 32 / 0.55)"
-    [style.width.px]="sidebar.collapsed() ? 76 : 264"
+    [class.-translate-x-full]="!sidebar.mobileOpen()"
+    [class.translate-x-0]="sidebar.mobileOpen()"
+    [class.sidebar-collapsed-width]="sidebar.effectiveCollapsed()"
   >
     <!-- ambient glow -->
     <div
@@ -18,35 +25,45 @@
       style="background: radial-gradient(circle, #22d3ee, transparent 70%)"
     ></div>
 
-    <!-- floating collapse toggle -->
+    <!-- floating collapse toggle - desktop only; the mobile drawer always renders full-width -->
     <button
       type="button"
-      class="absolute -right-3 top-[70px] z-40 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-md transition-all duration-150 hover:scale-110 hover:text-primary-600 hover:shadow-lg"
+      class="absolute -right-3 top-[70px] z-40 hidden h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-md transition-all duration-150 hover:scale-110 hover:text-primary-600 hover:shadow-lg lg:flex"
       (click)="sidebar.toggle()"
-      [title]="sidebar.collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+      [title]="sidebar.effectiveCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
     >
-      <app-icon [name]="sidebar.collapsed() ? 'chevron-right' : 'chevron-left'" [size]="13" [strokeWidth]="2.25" />
+      <app-icon [name]="sidebar.effectiveCollapsed() ? 'chevron-right' : 'chevron-left'" [size]="13" [strokeWidth]="2.25" />
+    </button>
+
+    <!-- mobile-only close button -->
+    <button
+      type="button"
+      class="absolute right-3 top-5 z-40 flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/10 hover:text-white lg:hidden"
+      (click)="sidebar.closeMobile()"
+      aria-label="Close menu"
+    >
+      <app-icon name="chevron-left" [size]="18" />
     </button>
 
     <!-- Brand -->
-    <div class="relative flex items-center gap-2 px-4 py-5" [class.justify-center]="sidebar.collapsed()" [class.px-0]="sidebar.collapsed()">
-      <a routerLink="/projects" class="flex min-w-0 items-center gap-2.5" [title]="orgName()">
+    <div class="relative flex items-center gap-2 px-4 py-5" [class.justify-center]="sidebar.effectiveCollapsed()" [class.px-0]="sidebar.effectiveCollapsed()">
+      <a routerLink="/projects" class="flex min-w-0 items-center gap-2.5" [title]="orgName()" (click)="sidebar.closeMobile()">
         <span
           class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold text-white"
           style="background: linear-gradient(135deg, #a78bfa, #22d3ee); box-shadow: 0 4px 14px -2px rgb(139 92 246 / 0.5)"
         >
           {{ orgName().charAt(0).toUpperCase() }}
         </span>
-        @if (!sidebar.collapsed()) {
+        @if (!sidebar.effectiveCollapsed()) {
           <span class="animate-fade-in truncate text-[15px] font-bold tracking-tight text-white">{{ orgName() }}</span>
         }
       </a>
     </div>
 
     <!-- Project switcher -->
-    <div class="relative px-3" [class.px-2]="sidebar.collapsed()">
+    <div class="relative px-3" [class.px-2]="sidebar.effectiveCollapsed()">
       <app-dropdown-menu [minWidth]="240" align="left">
-        @if (sidebar.collapsed()) {
+        @if (sidebar.effectiveCollapsed()) {
           <button trigger type="button" class="mx-auto flex h-10 w-10 items-center justify-center rounded-xl transition hover:bg-white/10" [title]="currentProjectStore.project()?.name ?? 'Select a project'">
             @if (currentProjectStore.project(); as p) {
               <span class="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold ring-2 ring-white/10 {{ colorFor(p.key).bg }} {{ colorFor(p.key).text }}">
@@ -81,6 +98,7 @@
               [routerLink]="['/projects', project.id, 'board']"
               class="flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-slate-50"
               [class.bg-slate-50]="project.id === projectId()"
+              (click)="sidebar.closeMobile()"
             >
               <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold {{ colorFor(project.key).bg }} {{ colorFor(project.key).text }}">
                 {{ project.key.slice(0, 2) }}
@@ -94,7 +112,7 @@
             <p class="px-3 py-2 text-sm text-slate-500">No projects yet</p>
           }
           <div class="my-1 border-t border-slate-100"></div>
-          <a routerLink="/projects" class="block px-3 py-2 text-sm font-medium text-primary-700 hover:bg-slate-50">
+          <a routerLink="/projects" class="block px-3 py-2 text-sm font-medium text-primary-700 hover:bg-slate-50" (click)="sidebar.closeMobile()">
             Manage projects
           </a>
         </div>
@@ -103,22 +121,23 @@
 
     <!-- Project-scoped nav -->
     @if (projectNavItems().length > 0) {
-      @if (!sidebar.collapsed()) {
+      @if (!sidebar.effectiveCollapsed()) {
         <p class="animate-fade-in mb-1.5 mt-5 px-4 text-[10.5px] font-bold uppercase tracking-wider text-slate-500">Project</p>
       } @else {
         <div class="mt-5"></div>
       }
-      <nav class="flex flex-col gap-1 px-3" [class.px-2]="sidebar.collapsed()" [class.items-center]="sidebar.collapsed()">
+      <nav class="flex flex-col gap-1 px-3" [class.px-2]="sidebar.effectiveCollapsed()" [class.items-center]="sidebar.effectiveCollapsed()">
         @for (item of projectNavItems(); track item.label) {
           <a
             [routerLink]="item.link"
             routerLinkActive="nav-item-active"
             class="nav-item group"
-            [class.justify-center]="sidebar.collapsed()"
-            [class.w-11]="sidebar.collapsed()"
+            [class.justify-center]="sidebar.effectiveCollapsed()"
+            [class.w-11]="sidebar.effectiveCollapsed()"
+            (click)="sidebar.closeMobile()"
           >
             <app-icon [name]="item.icon" [size]="19" />
-            @if (!sidebar.collapsed()) {
+            @if (!sidebar.effectiveCollapsed()) {
               <span class="animate-fade-in">{{ item.label }}</span>
             } @else {
               <span class="sidebar-tooltip">{{ item.label }}</span>
@@ -126,29 +145,30 @@
           </a>
         }
       </nav>
-      <div class="mx-4 my-4 border-t border-white/10" [class.mx-3]="sidebar.collapsed()"></div>
+      <div class="mx-4 my-4 border-t border-white/10" [class.mx-3]="sidebar.effectiveCollapsed()"></div>
     }
 
-    @if (!sidebar.collapsed()) {
+    @if (!sidebar.effectiveCollapsed()) {
       <p class="animate-fade-in mb-1.5 px-4 text-[10.5px] font-bold uppercase tracking-wider text-slate-500">Workspace</p>
     }
-    <div class="mt-auto flex flex-col gap-1 px-3 py-3" [class.px-2]="sidebar.collapsed()" [class.items-center]="sidebar.collapsed()">
+    <div class="mt-auto flex flex-col gap-1 px-3 py-3" [class.px-2]="sidebar.effectiveCollapsed()" [class.items-center]="sidebar.effectiveCollapsed()">
       @for (item of workspaceNavItems(); track item.label) {
         <a
           [routerLink]="item.link"
           routerLinkActive="nav-item-active"
           [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
           class="nav-item group"
-          [class.justify-center]="sidebar.collapsed()"
-          [class.w-11]="sidebar.collapsed()"
+          [class.justify-center]="sidebar.effectiveCollapsed()"
+          [class.w-11]="sidebar.effectiveCollapsed()"
+          (click)="sidebar.closeMobile()"
         >
           <app-icon [name]="item.icon" [size]="19" />
-          @if (!sidebar.collapsed()) {
+          @if (!sidebar.effectiveCollapsed()) {
             <span class="animate-fade-in">{{ item.label }}</span>
           } @else {
             <span class="sidebar-tooltip">{{ item.label }}</span>
           }
-          @if (item.icon === 'bell' && bell.unreadCount() > 0 && sidebar.collapsed()) {
+          @if (item.icon === 'bell' && bell.unreadCount() > 0 && sidebar.effectiveCollapsed()) {
             <span class="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-accent-400"></span>
           }
         </a>
@@ -159,26 +179,36 @@
   <!-- Main -->
   <div class="flex flex-1 flex-col overflow-hidden">
     <header
-      class="relative z-20 flex h-16 shrink-0 items-center justify-end gap-2 border-b border-slate-200/70 bg-white/85 px-6 backdrop-blur-md"
+      class="relative z-20 flex h-16 shrink-0 items-center gap-2 border-b border-slate-200/70 bg-white/85 px-4 backdrop-blur-md sm:px-6"
       style="box-shadow: 0 1px 0 rgb(15 23 42 / 0.02)"
     >
-      <a
-        routerLink="/notifications"
-        class="relative rounded-xl p-2.5 text-slate-500 transition-all duration-150 hover:-translate-y-px hover:bg-slate-100 hover:text-slate-700"
-        aria-label="Notifications"
+      <button
+        type="button"
+        class="rounded-xl p-2.5 text-slate-500 transition-all duration-150 hover:bg-slate-100 hover:text-slate-700 lg:hidden"
+        (click)="sidebar.toggleMobile()"
+        aria-label="Open menu"
       >
-        <app-icon name="bell" [size]="20" />
-        @if (bell.unreadCount() > 0) {
-          <span
-            class="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
-            style="background: linear-gradient(135deg, #fb7185, #e11d48)"
-          >
-            {{ bell.unreadCount() > 9 ? '9+' : bell.unreadCount() }}
-          </span>
-        }
-      </a>
+        <app-icon name="menu" [size]="20" />
+      </button>
 
-      <app-dropdown-menu [minWidth]="200">
+      <div class="ml-auto flex items-center gap-2">
+        <a
+          routerLink="/notifications"
+          class="relative rounded-xl p-2.5 text-slate-500 transition-all duration-150 hover:-translate-y-px hover:bg-slate-100 hover:text-slate-700"
+          aria-label="Notifications"
+        >
+          <app-icon name="bell" [size]="20" />
+          @if (bell.unreadCount() > 0) {
+            <span
+              class="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
+              style="background: linear-gradient(135deg, #fb7185, #e11d48)"
+            >
+              {{ bell.unreadCount() > 9 ? '9+' : bell.unreadCount() }}
+            </span>
+          }
+        </a>
+
+        <app-dropdown-menu [minWidth]="200">
         <div trigger class="flex items-center gap-2 rounded-xl px-2 py-1.5 transition-all duration-150 hover:bg-slate-100">
           <app-avatar [name]="authStore.currentUser()?.name ?? '?'" [size]="32" />
           <span class="text-sm font-medium text-slate-700">{{ authStore.currentUser()?.name }}</span>
@@ -203,10 +233,11 @@
             Log out
           </button>
         </div>
-      </app-dropdown-menu>
+        </app-dropdown-menu>
+      </div>
     </header>
 
-    <main class="flex-1 overflow-y-auto p-6">
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6">
       <router-outlet></router-outlet>
     </main>
   </div>

@@ -9,7 +9,7 @@ import { Component, ElementRef, HostListener, input, signal } from '@angular/cor
       </button>
       @if (isOpen()) {
         <div
-          class="absolute z-30 mt-2 rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+          class="absolute z-30 mt-2 max-w-[calc(100vw-2rem)] overflow-x-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
           [class.left-0]="align() === 'left'"
           [class.right-0]="align() === 'right'"
           [style.min-width.px]="minWidth()"

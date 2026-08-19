@@ -31,8 +31,8 @@ import { ConfirmDialogService } from '../../shared/ui/confirm-dialog.service';
       }
 
       @for (attachment of attachments(); track attachment.id) {
-        <div class="flex items-center justify-between rounded-xl border border-slate-200 p-3">
-          <div>
+        <div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 p-3">
+          <div class="min-w-0 break-all">
             <a [href]="attachment.fileUrl" target="_blank" rel="noopener" class="text-sm font-medium text-primary-700 hover:underline">
               {{ attachment.fileName || attachment.fileUrl }}
             </a>
@@ -41,7 +41,7 @@ import { ConfirmDialogService } from '../../shared/ui/confirm-dialog.service';
             </p>
           </div>
           @if (attachment.uploadedById === authStore.currentUser()?.id || canEdit()) {
-            <button type="button" class="text-xs text-slate-400 hover:text-red-600" (click)="remove(attachment)">Delete</button>
+            <button type="button" class="shrink-0 text-xs text-slate-400 hover:text-red-600" (click)="remove(attachment)">Delete</button>
           }
         </div>
       } @empty {
