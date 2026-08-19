@@ -28,6 +28,14 @@ export class OrganizationService {
     return this.http.post<OrganizationMemberCreateResponse>(`${BASE}/organizations/members`, request);
   }
 
+  // removes every one of the user's project memberships and blocks them
+  // from logging in again - their existing session is invalidated on the
+  // very next request too. The org owner and your own account can't be
+  // deleted this way (the backend rejects both).
+  deleteMember(userId: string): Observable<void> {
+    return this.http.delete<void>(`${BASE}/organizations/members/${userId}`);
+  }
+
   setProjectCreationAccess(userId: string, canCreateProjects: boolean): Observable<void> {
     return this.http.patch<void>(`${BASE}/users/${userId}/project-creation-access`, { canCreateProjects });
   }

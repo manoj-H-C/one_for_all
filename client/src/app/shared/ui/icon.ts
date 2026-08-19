@@ -25,7 +25,8 @@ export type IconName =
   | 'arrow-left'
   | 'calendar'
   | 'filter'
-  | 'trash';
+  | 'trash'
+  | 'grip';
 
 /** Inline Heroicons-style outline icons (24x24, stroke-based) - no external asset requests, no emoji. */
 @Component({
@@ -140,6 +141,14 @@ export type IconName =
         @case ('trash') {
           <path d="M5 7h14M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-9 0 .8 12.1a1 1 0 0 0 1 .9h6.4a1 1 0 0 0 1-.9L19 7" />
           <path d="M10 11v6M14 11v6" />
+        }
+        @case ('grip') {
+          <circle cx="9" cy="6" r="1.3" fill="currentColor" stroke="none" />
+          <circle cx="9" cy="12" r="1.3" fill="currentColor" stroke="none" />
+          <circle cx="9" cy="18" r="1.3" fill="currentColor" stroke="none" />
+          <circle cx="15" cy="6" r="1.3" fill="currentColor" stroke="none" />
+          <circle cx="15" cy="12" r="1.3" fill="currentColor" stroke="none" />
+          <circle cx="15" cy="18" r="1.3" fill="currentColor" stroke="none" />
         }
       }
     </svg>

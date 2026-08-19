@@ -28,4 +28,10 @@ public interface OrganizationService {
     List<OrganizationInvitationResponse> listInvitations(UUID requesterId);
 
     void revokeInvitation(UUID invitationId, UUID requesterId);
+
+    // soft-deletes the target user (see AppUser.deletedAt) and removes every
+    // one of their project memberships across the whole org - they lose all
+    // project/role access immediately and can no longer log in. The owner
+    // and the requester themselves can't be deleted this way.
+    void deleteMember(UUID targetUserId, UUID requesterId);
 }

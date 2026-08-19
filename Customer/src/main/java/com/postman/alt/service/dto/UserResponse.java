@@ -6,6 +6,7 @@ import java.util.UUID;
 public record UserResponse(
         UUID id,
         UUID orgId,
+        String orgName,
         String email,
         String name,
         boolean owner,

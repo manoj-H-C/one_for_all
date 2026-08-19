@@ -96,7 +96,7 @@ public class AuthServiceImpl implements AuthService {
     public AuthResponse login(LoginRequest request) {
         authRateLimiter.assertLoginAllowed(request.email());
 
-        var userOpt = appUserRepository.findByEmail(request.email());
+        var userOpt = appUserRepository.findByEmailAndDeletedAtIsNull(request.email());
         if (userOpt.isEmpty() || !passwordEncoder.matches(request.password(), userOpt.get().getPasswordHash())) {
             authRateLimiter.recordLoginFailure(request.email());
             throw new UnauthorizedException("Invalid email or password");
@@ -131,11 +131,13 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserResponse me(UUID userId) {
         return loadActiveUser(userId);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserResponse loadActiveUser(UUID userId) {
         AppUser user = appUserRepository.findById(userId)
                 .orElseThrow(() -> new UnauthorizedException("Account no longer exists"));
@@ -146,6 +148,9 @@ public class AuthServiceImpl implements AuthService {
     public void assertCurrentTokenVersion(UUID userId, int tokenVersion) {
         AppUser user = appUserRepository.findById(userId)
                 .orElseThrow(() -> new UnauthorizedException("Account no longer exists"));
+        if (user.getDeletedAt() != null) {
+            throw new UnauthorizedException("Account no longer exists");
+        }
         if (user.getTokenVersion() != tokenVersion) {
             throw new UnauthorizedException("Token has been revoked");
         }
@@ -283,6 +288,7 @@ public class AuthServiceImpl implements AuthService {
         return new UserResponse(
                 user.getId(),
                 user.getOrganization().getId(),
+                user.getOrganization().getName(),
                 user.getEmail(),
                 user.getName(),
                 user.isOwner(),

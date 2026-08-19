@@ -50,6 +50,8 @@ export class AppShellComponent implements OnInit, OnDestroy {
   readonly projects = signal<ProjectResponse[]>([]);
   protected readonly colorFor = colorFor;
 
+  readonly orgName = computed(() => this.authStore.currentUser()?.orgName ?? 'jeera_alt');
+
   private readonly currentUrl = toSignal(
     this.router.events.pipe(
       filter((e) => e instanceof NavigationEnd),
@@ -83,7 +85,7 @@ export class AppShellComponent implements OnInit, OnDestroy {
       { icon: 'bell', label: 'Notifications', link: ['/notifications'] },
     ];
     if (this.authStore.isOwner() || this.authStore.canManageMembers()) {
-      items.push({ icon: 'building', label: 'Org admin', link: ['/org'] });
+      items.push({ icon: 'building', label: 'User Management', link: ['/org'] });
     }
     return items;
   });

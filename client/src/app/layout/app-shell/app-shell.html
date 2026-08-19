@@ -30,15 +30,15 @@
 
     <!-- Brand -->
     <div class="relative flex items-center gap-2 px-4 py-5" [class.justify-center]="sidebar.collapsed()" [class.px-0]="sidebar.collapsed()">
-      <a routerLink="/projects" class="flex min-w-0 items-center gap-2.5">
+      <a routerLink="/projects" class="flex min-w-0 items-center gap-2.5" [title]="orgName()">
         <span
           class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold text-white"
           style="background: linear-gradient(135deg, #a78bfa, #22d3ee); box-shadow: 0 4px 14px -2px rgb(139 92 246 / 0.5)"
         >
-          J
+          {{ orgName().charAt(0).toUpperCase() }}
         </span>
         @if (!sidebar.collapsed()) {
-          <span class="animate-fade-in truncate text-[15px] font-bold tracking-tight text-white">jeera_alt</span>
+          <span class="animate-fade-in truncate text-[15px] font-bold tracking-tight text-white">{{ orgName() }}</span>
         }
       </a>
     </div>

@@ -8,6 +8,7 @@ import com.postman.alt.exception.ForbiddenException;
 import com.postman.alt.exception.ResourceNotFoundException;
 import com.postman.alt.repository.AppUserRepository;
 import com.postman.alt.repository.OrganizationInvitationRepository;
+import com.postman.alt.repository.ProjectMemberRepository;
 import com.postman.alt.service.OrganizationService;
 import com.postman.alt.service.dto.OrganizationInvitationCreateRequest;
 import com.postman.alt.service.dto.OrganizationInvitationResponse;
@@ -33,15 +34,18 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     private final AppUserRepository appUserRepository;
     private final OrganizationInvitationRepository organizationInvitationRepository;
+    private final ProjectMemberRepository projectMemberRepository;
     private final PasswordEncoder passwordEncoder;
 
     public OrganizationServiceImpl(
             AppUserRepository appUserRepository,
             OrganizationInvitationRepository organizationInvitationRepository,
+            ProjectMemberRepository projectMemberRepository,
             PasswordEncoder passwordEncoder
     ) {
         this.appUserRepository = appUserRepository;
         this.organizationInvitationRepository = organizationInvitationRepository;
+        this.projectMemberRepository = projectMemberRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -71,7 +75,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Transactional(readOnly = true)
     public List<OrganizationMemberResponse> listMembers(UUID requesterId) {
         AppUser requester = requireAdmin(requesterId);
-        return appUserRepository.findByOrganizationId(requester.getOrganization().getId()).stream()
+        return appUserRepository.findByOrganizationIdAndDeletedAtIsNull(requester.getOrganization().getId()).stream()
                 .map(this::toMemberResponse)
                 .toList();
     }
@@ -158,6 +162,28 @@ public class OrganizationServiceImpl implements OrganizationService {
             throw new ResourceNotFoundException("OrganizationInvitation", invitationId);
         }
         invitation.setStatus(InvitationStatus.REVOKED);
+    }
+
+    @Override
+    @Transactional
+    public void deleteMember(UUID targetUserId, UUID requesterId) {
+        AppUser requester = requireAdmin(requesterId);
+        AppUser target = getSameOrgUser(requester, targetUserId);
+
+        if (target.isOwner()) {
+            throw new ForbiddenException("The organization owner can't be deleted");
+        }
+        if (target.getId().equals(requesterId)) {
+            throw new ForbiddenException("You can't delete your own account");
+        }
+
+        projectMemberRepository.deleteAll(projectMemberRepository.findByUserId(target.getId()));
+        target.softDelete();
+        // in case a token was issued in the instant before this - belt and
+        // braces alongside deletedAt on top of assertCurrentTokenVersion.
+        target.bumpTokenVersion();
+
+        log.info("Org member {} (id={}) deleted by {}", target.getEmail(), target.getId(), requesterId);
     }
 
     // owner or a delegated admin (canManageMembers) - the shared gate for

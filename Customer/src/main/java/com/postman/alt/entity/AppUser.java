@@ -79,6 +79,15 @@ public class AppUser {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
+    // null = active. Deleting a user from the org admin page sets this
+    // instead of removing the row, so their name still resolves correctly
+    // on old comments/assignments/activity - but they lose every project
+    // membership (see OrganizationServiceImpl.deleteMember), can't log in
+    // (AuthServiceImpl.login), and any still-active token is rejected on
+    // the very next request (AuthServiceImpl.assertCurrentTokenVersion).
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
     protected AppUser() {
         // JPA
     }
@@ -168,5 +177,13 @@ public class AppUser {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Instant getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void softDelete() {
+        this.deletedAt = Instant.now();
     }
 }

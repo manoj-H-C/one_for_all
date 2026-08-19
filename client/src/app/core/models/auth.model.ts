@@ -10,6 +10,7 @@ export interface AuthResponse {
 export interface UserResponse {
   id: string;
   orgId: string;
+  orgName: string;
   email: string;
   name: string;
   owner: boolean;

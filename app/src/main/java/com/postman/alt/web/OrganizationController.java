@@ -53,6 +53,12 @@ public class OrganizationController {
         );
     }
 
+    @DeleteMapping("/api/organizations/members/{userId}")
+    public ResponseEntity<Void> deleteMember(@PathVariable UUID userId) {
+        organizationService.deleteMember(userId, CurrentUser.id());
+        return ResponseEntity.noContent().build();
+    }
+
     @PatchMapping("/api/users/{userId}/project-creation-access")
     public ResponseEntity<Void> setProjectCreationAccess(
             @PathVariable UUID userId,
