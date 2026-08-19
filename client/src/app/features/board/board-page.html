@@ -168,7 +168,7 @@
             >
               @for (item of itemsByStatus()[status.id] ?? []; track item.id) {
                 <div cdkDrag [cdkDragData]="item" [cdkDragDisabled]="!canEdit()">
-                  <app-work-item-card [item]="item" [members]="members()" />
+                  <app-work-item-card [item]="item" [members]="members()" [customFields]="customFields()" />
                 </div>
               } @empty {
                 <div class="flex flex-1 items-center justify-center rounded-xl border border-dashed border-slate-200 py-8 text-xs text-slate-400">
