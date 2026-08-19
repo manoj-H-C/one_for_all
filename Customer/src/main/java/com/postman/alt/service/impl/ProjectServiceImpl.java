@@ -134,6 +134,12 @@ public class ProjectServiceImpl implements ProjectService {
         if (request.itemDisplayNamePlural() != null) {
             project.setItemDisplayNamePlural(request.itemDisplayNamePlural());
         }
+        if (request.sprintLabelSingular() != null) {
+            project.setSprintLabelSingular(request.sprintLabelSingular());
+        }
+        if (request.sprintLabelPlural() != null) {
+            project.setSprintLabelPlural(request.sprintLabelPlural());
+        }
 
         return toResponse(project);
     }
@@ -172,6 +178,8 @@ public class ProjectServiceImpl implements ProjectService {
                 project.getTemplateType(),
                 project.getItemDisplayNameSingular(),
                 project.getItemDisplayNamePlural(),
+                project.getSprintLabelSingular(),
+                project.getSprintLabelPlural(),
                 project.getCreatedAt()
         );
     }

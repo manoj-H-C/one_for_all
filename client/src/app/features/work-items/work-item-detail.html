@@ -117,7 +117,7 @@
           </div>
           @if (sprints().length > 0) {
             <div>
-              <label class="label">Sprint</label>
+              <label class="label">{{ currentProjectStore.sprintLabelSingular() }}</label>
               <select class="input" [ngModel]="it.sprintId ?? ''" [disabled]="!canEdit()" (ngModelChange)="changeSprint($event)">
                 <option value="">Backlog</option>
                 @for (s of sprints(); track s.id) {

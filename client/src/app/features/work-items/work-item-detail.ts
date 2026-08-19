@@ -174,7 +174,7 @@ export class WorkItemDetailComponent implements OnInit {
     this.workItemService.updateSprint(this.workItemId, sprintId || null).subscribe({
       next: (updated) => {
         this.applyItem(updated);
-        this.toast.success('Sprint updated');
+        this.toast.success(`${this.currentProjectStore.sprintLabelSingular()} updated`);
       },
       error: (err) => this.toast.error(err.message),
     });

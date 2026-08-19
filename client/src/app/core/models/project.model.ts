@@ -6,6 +6,8 @@ export interface ProjectResponse {
   templateType: string | null;
   itemDisplayNameSingular: string;
   itemDisplayNamePlural: string;
+  sprintLabelSingular: string;
+  sprintLabelPlural: string;
   createdAt: string;
 }
 
@@ -19,4 +21,6 @@ export interface ProjectUpdateRequest {
   name?: string | null;
   itemDisplayNameSingular?: string | null;
   itemDisplayNamePlural?: string | null;
+  sprintLabelSingular?: string | null;
+  sprintLabelPlural?: string | null;
 }

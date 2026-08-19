@@ -97,6 +97,38 @@ import { colorFor } from '../../shared/util/color-hash';
         </div>
       </div>
 
+      <!-- Sprint label -->
+      <div class="card p-5">
+        <div class="mb-4 flex items-center gap-3">
+          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+            <app-icon name="calendar" [size]="17" />
+          </span>
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-slate-800">Sprint label</p>
+            <p class="truncate text-xs text-slate-500">Not every team works in sprints — rename it to "Phase", "Billing Cycle", "Round", whatever fits.</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label class="label">Singular</label>
+            <input type="text" class="input" placeholder="Sprint" [(ngModel)]="sprintSingular" [disabled]="!canManage()" />
+          </div>
+          <div>
+            <label class="label">Plural</label>
+            <input type="text" class="input" placeholder="Sprints" [(ngModel)]="sprintPlural" [disabled]="!canManage()" />
+          </div>
+        </div>
+
+        <div class="mt-4 flex flex-wrap items-center gap-2 rounded-xl bg-slate-50 px-3.5 py-3 text-sm">
+          <app-icon name="sparkles" [size]="15" class="shrink-0 text-primary-500" />
+          <span class="text-slate-500">Preview:</span>
+          <span class="font-medium text-slate-700">"New {{ previewSprintSingular() }}"</span>
+          <span class="text-slate-300">·</span>
+          <span class="font-medium text-slate-700">"{{ previewSprintPlural() }} settings"</span>
+        </div>
+      </div>
+
       <!-- Danger zone -->
       @if (canManage()) {
         <div class="card border-l-4 border-l-red-400 p-5">
@@ -152,6 +184,8 @@ export class GeneralSettingsComponent implements OnInit {
   readonly name = signal('');
   readonly singular = signal('');
   readonly plural = signal('');
+  readonly sprintSingular = signal('');
+  readonly sprintPlural = signal('');
   readonly saving = signal(false);
 
   protected readonly colorFor = colorFor;
@@ -159,30 +193,47 @@ export class GeneralSettingsComponent implements OnInit {
   protected readonly avatarColor = computed(() => colorFor(this.projectKey() || 'project'));
   protected readonly previewSingular = computed(() => (this.singular().trim() || 'Work item').toLowerCase());
   protected readonly previewPlural = computed(() => (this.plural().trim() || 'Work items').toLowerCase());
+  protected readonly previewSprintSingular = computed(() => (this.sprintSingular().trim() || 'Sprint').toLowerCase());
+  protected readonly previewSprintPlural = computed(() => this.sprintPlural().trim() || 'Sprints');
 
-  private readonly snapshot = signal({ name: '', singular: '', plural: '' });
+  private readonly snapshot = signal({ name: '', singular: '', plural: '', sprintSingular: '', sprintPlural: '' });
 
-  readonly dirty = computed(
-    () => this.name() !== this.snapshot().name || this.singular() !== this.snapshot().singular || this.plural() !== this.snapshot().plural,
-  );
+  readonly dirty = computed(() => {
+    const s = this.snapshot();
+    return (
+      this.name() !== s.name ||
+      this.singular() !== s.singular ||
+      this.plural() !== s.plural ||
+      this.sprintSingular() !== s.sprintSingular ||
+      this.sprintPlural() !== s.sprintPlural
+    );
+  });
 
   ngOnInit(): void {
     const project = this.currentProjectStore.project();
     if (project) {
-      this.applySnapshot(project.name, project.itemDisplayNameSingular, project.itemDisplayNamePlural);
+      this.applySnapshot(
+        project.name,
+        project.itemDisplayNameSingular,
+        project.itemDisplayNamePlural,
+        project.sprintLabelSingular,
+        project.sprintLabelPlural,
+      );
     }
   }
 
-  private applySnapshot(name: string, singular: string, plural: string): void {
+  private applySnapshot(name: string, singular: string, plural: string, sprintSingular: string, sprintPlural: string): void {
     this.name.set(name);
     this.singular.set(singular);
     this.plural.set(plural);
-    this.snapshot.set({ name, singular, plural });
+    this.sprintSingular.set(sprintSingular);
+    this.sprintPlural.set(sprintPlural);
+    this.snapshot.set({ name, singular, plural, sprintSingular, sprintPlural });
   }
 
   discard(): void {
     const s = this.snapshot();
-    this.applySnapshot(s.name, s.singular, s.plural);
+    this.applySnapshot(s.name, s.singular, s.plural, s.sprintSingular, s.sprintPlural);
   }
 
   save(): void {
@@ -193,11 +244,19 @@ export class GeneralSettingsComponent implements OnInit {
         name: this.name(),
         itemDisplayNameSingular: this.singular(),
         itemDisplayNamePlural: this.plural(),
+        sprintLabelSingular: this.sprintSingular(),
+        sprintLabelPlural: this.sprintPlural(),
       })
       .subscribe({
         next: (updated) => {
           this.currentProjectStore.applyUpdate(updated);
-          this.applySnapshot(updated.name, updated.itemDisplayNameSingular, updated.itemDisplayNamePlural);
+          this.applySnapshot(
+            updated.name,
+            updated.itemDisplayNameSingular,
+            updated.itemDisplayNamePlural,
+            updated.sprintLabelSingular,
+            updated.sprintLabelPlural,
+          );
           this.saving.set(false);
           this.toast.success('Project updated');
         },

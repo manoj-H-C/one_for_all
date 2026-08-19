@@ -11,6 +11,8 @@ public record ProjectResponse(
         String templateType,
         String itemDisplayNameSingular,
         String itemDisplayNamePlural,
+        String sprintLabelSingular,
+        String sprintLabelPlural,
         Instant createdAt
 ) {
 }

@@ -92,7 +92,7 @@ import { CustomFieldsFormComponent } from '../../shared/ui/custom-fields-form';
           </div>
           @if (sprints().length > 0) {
             <div>
-              <label class="label" for="sprintId">Sprint</label>
+              <label class="label" for="sprintId">{{ currentProjectStore.sprintLabelSingular() }}</label>
               <select id="sprintId" class="input" [(ngModel)]="sprintId" name="sprintId">
                 <option [value]="''">Backlog</option>
                 @for (s of sprints(); track s.id) {

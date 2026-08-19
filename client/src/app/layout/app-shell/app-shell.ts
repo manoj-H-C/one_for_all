@@ -70,7 +70,7 @@ export class AppShellComponent implements OnInit, OnDestroy {
     if (!pid) return [];
     return [
       { icon: 'board', label: 'Board', link: ['/projects', pid, 'board'] },
-      { icon: 'calendar', label: 'Sprints', link: ['/projects', pid, 'settings', 'sprints'] },
+      { icon: 'calendar', label: this.currentProjectStore.sprintLabelPlural(), link: ['/projects', pid, 'settings', 'sprints'] },
       { icon: 'members', label: 'Members', link: ['/projects', pid, 'settings', 'members'] },
       { icon: 'roles', label: 'Roles', link: ['/projects', pid, 'settings', 'roles'] },
       { icon: 'workflow', label: 'Workflow', link: ['/projects', pid, 'settings', 'workflow'] },

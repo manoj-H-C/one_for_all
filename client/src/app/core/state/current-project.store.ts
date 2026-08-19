@@ -22,6 +22,11 @@ export class CurrentProjectStore {
   readonly itemLabelSingular = computed(() => this.project()?.itemDisplayNameSingular?.trim() || 'Work item');
   readonly itemLabelPlural = computed(() => this.project()?.itemDisplayNamePlural?.trim() || 'Work items');
 
+  // Same idea for "Sprint" - a software-team term that doesn't fit every
+  // industry, so it's renameable to "Phase", "Billing Cycle", "Round", etc.
+  readonly sprintLabelSingular = computed(() => this.project()?.sprintLabelSingular?.trim() || 'Sprint');
+  readonly sprintLabelPlural = computed(() => this.project()?.sprintLabelPlural?.trim() || 'Sprints');
+
   load(projectId: string): Observable<ProjectResponse> {
     return this.projectService.get(projectId).pipe(tap((project) => this.project.set(project)));
   }

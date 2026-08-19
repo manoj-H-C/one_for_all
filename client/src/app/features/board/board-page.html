@@ -94,11 +94,11 @@
         </div>
         @if (sprints().length > 0) {
           <div>
-            <label class="mb-1 block text-xs font-medium text-slate-500">Sprint</label>
+            <label class="mb-1 block text-xs font-medium text-slate-500">{{ currentProjectStore.sprintLabelSingular() }}</label>
             <app-searchable-select
               [options]="sprintOptions()"
               [value]="filterSprintId()"
-              placeholder="Any sprint"
+              [placeholder]="'Any ' + currentProjectStore.sprintLabelSingular().toLowerCase()"
               (valueChange)="filterSprintId.set($event); onFilterChange()"
             />
           </div>
@@ -203,7 +203,7 @@
             <th class="px-4 py-3">Priority</th>
             <th class="px-4 py-3">Assignee</th>
             @if (sprints().length > 0) {
-              <th class="px-4 py-3">Sprint</th>
+              <th class="px-4 py-3">{{ currentProjectStore.sprintLabelSingular() }}</th>
             }
             @if (types().length > 0) {
               <th class="px-4 py-3">Type</th>

@@ -8,6 +8,8 @@ package com.postman.alt.service.dto;
 public record ProjectUpdateRequest(
         String name,
         String itemDisplayNameSingular,
-        String itemDisplayNamePlural
+        String itemDisplayNamePlural,
+        String sprintLabelSingular,
+        String sprintLabelPlural
 ) {
 }
