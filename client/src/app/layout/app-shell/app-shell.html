@@ -2,18 +2,23 @@
   class="flex h-screen overflow-hidden"
   style="background: radial-gradient(1100px 560px at 15% -8%, rgba(139,92,246,0.06), transparent 60%), #f7f7fb"
 >
-  <!-- Mobile drawer backdrop -->
-  @if (sidebar.mobileOpen()) {
-    <div class="fixed inset-0 z-[25] bg-slate-900/50 lg:hidden" (click)="sidebar.closeMobile()"></div>
-  }
+  <!-- Mobile drawer backdrop - always mounted (not @if-gated) so toggling
+       opacity actually transitions instead of popping in/out; inserting a
+       fresh element with its final class already applied never animates. -->
+  <div
+    class="fixed inset-0 z-[25] bg-slate-900/50 transition-opacity duration-300 ease-out lg:hidden"
+    [class.opacity-0]="!sidebar.mobileOpen()"
+    [class.pointer-events-none]="!sidebar.mobileOpen()"
+    (click)="sidebar.closeMobile()"
+  ></div>
 
   <!-- Sidebar -->
   <aside
-    class="sidebar-surface fixed inset-y-0 left-0 z-30 flex w-[264px] shrink-0 flex-col transition-transform duration-200 ease-out lg:relative lg:z-auto lg:translate-x-0 lg:transition-[width]"
+    class="sidebar-panel sidebar-surface fixed inset-y-0 left-0 z-30 flex shrink-0 flex-col lg:relative lg:z-auto lg:translate-x-0"
     style="box-shadow: 6px 0 28px -14px rgb(11 16 32 / 0.55)"
+    [style.width.px]="sidebar.effectiveCollapsed() ? 76 : 264"
     [class.-translate-x-full]="!sidebar.mobileOpen()"
     [class.translate-x-0]="sidebar.mobileOpen()"
-    [class.sidebar-collapsed-width]="sidebar.effectiveCollapsed()"
   >
     <!-- ambient glow -->
     <div

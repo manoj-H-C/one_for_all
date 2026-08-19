@@ -111,13 +111,15 @@ body {
   background: linear-gradient(180deg, var(--color-rail-900), var(--color-rail-950));
 }
 
-/* collapse-to-icons only applies at the lg breakpoint and up - the mobile
-   drawer always renders full-width regardless of the desktop preference.
-   A plain class (rather than an inline lg:w-[...] binding) sidesteps
-   Angular's template parser treating the arbitrary-value brackets as the
-   end of the [class.x] binding name. */
-@utility sidebar-collapsed-width {
-  @apply lg:w-[76px];
+/* Separate, tuned transitions per property rather than transition-all:
+   translate (the mobile open/close slide) is compositor-only and can run at
+   a slightly longer duration with a springier curve without cost, while
+   width (the desktop collapse-to-icons toggle) triggers layout on every
+   frame, so it stays snappier. will-change hints the browser to promote the
+   panel to its own layer up front instead of during the first drag. */
+@utility sidebar-panel {
+  transition: translate 280ms cubic-bezier(0.22, 1, 0.36, 1), width 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: translate, width;
 }
 
 @utility nav-item {
