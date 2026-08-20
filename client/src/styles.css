@@ -1,0 +1,371 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-50: #f5f3ff;
+  --color-primary-100: #ede9fe;
+  --color-primary-200: #ddd6fe;
+  --color-primary-300: #c4b5fd;
+  --color-primary-400: #a78bfa;
+  --color-primary-500: #8b5cf6;
+  --color-primary-600: #7c3aed;
+  --color-primary-700: #6d28d9;
+  --color-primary-800: #5b21b6;
+  --color-primary-900: #4c1d95;
+
+  --color-accent-400: #22d3ee;
+  --color-accent-500: #06b6d4;
+  --color-accent-600: #0891b2;
+
+  --color-ink-900: #0f172a;
+
+  /* dark, slightly indigo-tinted rail - reads more "product" than flat slate */
+  --color-rail-950: #0b1020;
+  --color-rail-900: #12172b;
+  --color-rail-800: #1b2140;
+  --color-rail-700: #262d52;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  --shadow-soft: 0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.06);
+  --shadow-card: 0 1px 2px 0 rgb(15 23 42 / 0.03), 0 4px 12px -2px rgb(15 23 42 / 0.08);
+  --shadow-lift: 0 8px 24px -4px rgb(15 23 42 / 0.16), 0 2px 8px -2px rgb(15 23 42 / 0.08);
+  --shadow-popover: 0 12px 32px -8px rgb(15 23 42 / 0.22), 0 4px 12px -4px rgb(15 23 42 / 0.12);
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  background-color: #f7f7fb;
+  color: var(--color-ink-900);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+::selection {
+  background-color: var(--color-primary-200);
+  color: var(--color-primary-900);
+}
+
+@utility card {
+  @apply bg-white rounded-2xl border border-slate-200/70;
+  box-shadow: var(--shadow-card);
+}
+
+@utility card-hover {
+  @apply card transition-all duration-200;
+}
+.card-hover:hover {
+  box-shadow: var(--shadow-lift);
+  transform: translateY(-2px);
+  border-color: var(--color-primary-200);
+}
+
+@utility input {
+  @apply w-full rounded-xl border border-slate-300/90 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition-all duration-150 focus:outline-none focus:ring-4 focus:ring-primary-500/15 focus:border-primary-500 disabled:bg-slate-50 disabled:text-slate-400;
+}
+
+@utility label {
+  @apply block text-sm font-medium text-slate-700 mb-1.5;
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-150 select-none disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none focus:outline-none focus:ring-4 active:scale-[0.98];
+}
+
+@utility btn-primary {
+  @apply btn text-white;
+  background: linear-gradient(135deg, var(--color-primary-600), var(--color-primary-700));
+  box-shadow: 0 1px 2px rgb(109 40 217 / 0.1), 0 4px 12px -2px rgb(124 58 237 / 0.35);
+}
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600));
+  box-shadow: 0 2px 4px rgb(109 40 217 / 0.15), 0 8px 20px -4px rgb(124 58 237 / 0.45);
+}
+.btn-primary:focus-visible {
+  --tw-ring-color: var(--color-primary-500);
+  --tw-ring-opacity: 0.25;
+}
+
+@utility btn-secondary {
+  @apply btn bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:border-slate-400 focus-visible:ring-primary-500/15;
+  box-shadow: var(--shadow-soft);
+}
+
+@utility btn-danger {
+  @apply btn bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500/25;
+  box-shadow: 0 1px 2px rgb(220 38 38 / 0.1), 0 4px 12px -2px rgb(220 38 38 / 0.3);
+}
+
+@utility btn-ghost {
+  @apply btn bg-transparent text-slate-600 hover:bg-slate-100 focus-visible:ring-primary-500/15;
+}
+
+@utility sidebar-surface {
+  background: linear-gradient(180deg, var(--color-rail-900), var(--color-rail-950));
+}
+
+/* Separate, tuned transitions per property rather than transition-all:
+   translate (the mobile open/close slide) is compositor-only and can run at
+   a slightly longer duration with a springier curve without cost, while
+   width (the desktop collapse-to-icons toggle) triggers layout on every
+   frame, so it stays snappier. will-change hints the browser to promote the
+   panel to its own layer up front instead of during the first drag. */
+@utility sidebar-panel {
+  transition: translate 280ms cubic-bezier(0.22, 1, 0.36, 1), width 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: translate, width;
+}
+
+@utility nav-item {
+  @apply relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300/90 transition-all duration-150;
+}
+.nav-item:hover {
+  @apply text-white;
+  background: var(--color-rail-800);
+  transform: translateX(1px);
+}
+.nav-item.nav-item-active {
+  @apply text-white;
+  background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-700) 130%);
+  box-shadow: 0 4px 14px -2px rgb(124 58 237 / 0.55);
+}
+.nav-item.nav-item-active:hover {
+  transform: none;
+}
+
+/* flyout label shown on hover when the sidebar is collapsed to icon-only */
+.sidebar-tooltip {
+  @apply pointer-events-none absolute left-full top-1/2 z-50 ml-3 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white opacity-0 shadow-xl;
+  background: var(--color-rail-950);
+  transform: translateY(-50%) translateX(-4px) scale(0.95);
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+.group:hover .sidebar-tooltip {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0) scale(1);
+}
+
+.work-item-card {
+  box-shadow: var(--shadow-soft);
+}
+.work-item-card:hover {
+  box-shadow: var(--shadow-lift);
+}
+
+/* kanban drag feedback - cdk applies these classes automatically during a drag */
+.cdk-drag-preview {
+  border-radius: 0.75rem !important;
+  box-shadow: var(--shadow-popover) !important;
+  rotate: 2deg;
+}
+.cdk-drag-placeholder {
+  opacity: 0.35;
+}
+.cdk-drag-animating {
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+.board-column.cdk-drop-list-dragging {
+  background-color: color-mix(in srgb, var(--color-primary-500) 6%, transparent);
+  outline: 2px dashed color-mix(in srgb, var(--color-primary-500) 30%, transparent);
+  outline-offset: -2px;
+}
+
+/* ---- animated auth backdrop ---- */
+.branded-page {
+  background: linear-gradient(180deg, #0b1020, #0d1226 60%, #0b1020);
+}
+
+/* wrapping the orbs so one slow hue-rotate sweeps all their colors together,
+   instead of each orb being a fixed, static color forever */
+.aurora-layer {
+  position: absolute;
+  inset: 0;
+  animation: aurora-hue-shift 18s linear infinite;
+}
+@keyframes aurora-hue-shift {
+  from { filter: hue-rotate(0deg); }
+  to { filter: hue-rotate(360deg); }
+}
+
+.aurora-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(85px);
+  opacity: 0.55;
+  mix-blend-mode: screen;
+  will-change: transform;
+  pointer-events: none;
+}
+.aurora-orb-1 {
+  left: -8%;
+  top: -12%;
+  height: 34rem;
+  width: 34rem;
+  background: radial-gradient(circle, #8b5cf6, transparent 70%);
+  animation: aurora-drift-a 13s ease-in-out infinite;
+}
+.aurora-orb-2 {
+  right: -12%;
+  top: 8%;
+  height: 30rem;
+  width: 30rem;
+  background: radial-gradient(circle, #22d3ee, transparent 70%);
+  animation: aurora-drift-b 16s ease-in-out infinite;
+  animation-delay: -4s;
+}
+.aurora-orb-3 {
+  bottom: -14%;
+  left: 12%;
+  height: 28rem;
+  width: 28rem;
+  background: radial-gradient(circle, #f472b6, transparent 70%);
+  opacity: 0.45;
+  animation: aurora-drift-c 11s ease-in-out infinite;
+  animation-delay: -7s;
+}
+.aurora-orb-4 {
+  bottom: -6%;
+  right: -6%;
+  height: 26rem;
+  width: 26rem;
+  background: radial-gradient(circle, #6366f1, transparent 70%);
+  opacity: 0.5;
+  animation: aurora-drift-a 15s ease-in-out infinite;
+  animation-delay: -10s;
+}
+.aurora-orb-5 {
+  left: 2%;
+  bottom: 30%;
+  height: 20rem;
+  width: 20rem;
+  background: radial-gradient(circle, #34d399, transparent 70%);
+  opacity: 0.28;
+  animation: aurora-drift-c 20s ease-in-out infinite;
+  animation-delay: -3s;
+}
+
+@keyframes aurora-drift-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(14%, 16%) scale(1.25); }
+  66% { transform: translate(-12%, 9%) scale(0.85); }
+}
+@keyframes aurora-drift-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  40% { transform: translate(-18%, 12%) scale(0.82); }
+  75% { transform: translate(10%, -14%) scale(1.22); }
+}
+@keyframes aurora-drift-c {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(16%, -18%) scale(1.3); }
+}
+
+/* rising firefly particles */
+.particle-field {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.particle {
+  position: absolute;
+  bottom: -10px;
+  width: var(--size, 3px);
+  height: var(--size, 3px);
+  border-radius: 9999px;
+  background: #e9e4ff;
+  box-shadow: 0 0 6px 2px rgb(167 139 250 / 0.7);
+  opacity: 0;
+  animation-name: particle-float;
+  animation-timing-function: ease-in;
+  animation-iteration-count: infinite;
+}
+@keyframes particle-float {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  12% { opacity: 0.9; }
+  85% { opacity: 0.5; }
+  100% { transform: translateY(-100vh) translateX(24px); opacity: 0; }
+}
+
+.aurora-grid {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 75%);
+  animation: aurora-grid-pan 90s linear infinite;
+}
+@keyframes aurora-grid-pan {
+  from { background-position: 0 0, 0 0; }
+  to { background-position: 240px 180px, 240px 180px; }
+}
+
+/* soft pulsing glow directly behind the card, so it reads as lit-from-behind
+   rather than just floating on top of an unrelated background */
+.card-spotlight {
+  position: absolute;
+  inset: -15%;
+  z-index: 0;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.35), transparent 68%);
+  filter: blur(40px);
+  animation: card-spotlight-pulse 5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes card-spotlight-pulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+
+/* rotating rainbow-gradient ring around the card. The padding on .card-aura
+   reveals a 2px border of whatever's behind .auth-card; that "behind" layer
+   is a ::before sized well beyond the box and spun around the shared center,
+   clipped to the rounded rect by overflow:hidden - so only the border ring
+   appears to rotate, never the card content sitting on top of it. */
+.card-aura {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: 0 0 40px -6px rgb(139 92 246 / 0.5);
+}
+.card-aura::before {
+  content: '';
+  position: absolute;
+  inset: -60%;
+  background: conic-gradient(from 0deg, #8b5cf6, #22d3ee, #34d399, #f472b6, #6366f1, #8b5cf6);
+  animation: card-aura-spin 6s linear infinite;
+  z-index: 0;
+}
+@keyframes card-aura-spin {
+  to { transform: rotate(360deg); }
+}
+
+.auth-card {
+  position: relative;
+  z-index: 1;
+  background: rgb(255 255 255 / 0.97);
+  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-popover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-orb, .aurora-layer, .aurora-grid, .particle, .card-aura::before, .card-spotlight {
+    animation: none !important;
+  }
+  .particle-field {
+    display: none;
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.15s ease-out;
+}

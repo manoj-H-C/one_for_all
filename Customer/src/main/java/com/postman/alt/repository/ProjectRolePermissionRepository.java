@@ -11,5 +11,10 @@ public interface ProjectRolePermissionRepository extends JpaRepository<ProjectRo
 
     List<ProjectRolePermission> findByRoleId(UUID roleId);
 
+    // fetches every role's permission links for a project in one query -
+    // used by RoleServiceImpl.list() to avoid an N+1 (one findByRoleId per
+    // role) when listing all of a project's roles.
+    List<ProjectRolePermission> findByRole_ProjectId(UUID projectId);
+
     boolean existsByRoleIdAndPermissionCode(UUID roleId, String permissionCode);
 }

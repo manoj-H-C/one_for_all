@@ -48,8 +48,23 @@ public class Project {
     @Column(name = "item_display_name_plural")
     private String itemDisplayNamePlural = "Work items";
 
+    // same terminology-is-a-display-concern mechanism as the item display
+    // name, for the Sprint concept - lets a non-software team call it
+    // "Phase", "Billing Cycle", "Round", etc.
+    @Column(name = "sprint_label_singular")
+    private String sprintLabelSingular = "Sprint";
+
+    @Column(name = "sprint_label_plural")
+    private String sprintLabelPlural = "Sprints";
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
+
+    // null = active. Set on delete instead of removing the row, so a
+    // project's work items/roles/history aren't destroyed by an accidental
+    // or malicious delete - see WorkItem.deletedAt for the same pattern.
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
 
     protected Project() {
         // JPA
@@ -102,7 +117,31 @@ public class Project {
         this.itemDisplayNamePlural = itemDisplayNamePlural;
     }
 
+    public String getSprintLabelSingular() {
+        return sprintLabelSingular;
+    }
+
+    public void setSprintLabelSingular(String sprintLabelSingular) {
+        this.sprintLabelSingular = sprintLabelSingular;
+    }
+
+    public String getSprintLabelPlural() {
+        return sprintLabelPlural;
+    }
+
+    public void setSprintLabelPlural(String sprintLabelPlural) {
+        this.sprintLabelPlural = sprintLabelPlural;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Instant getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void softDelete() {
+        this.deletedAt = Instant.now();
     }
 }

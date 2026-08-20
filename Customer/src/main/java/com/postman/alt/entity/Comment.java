@@ -9,8 +9,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -38,6 +42,13 @@ public class Comment {
     // of a special case bolted onto a video-only table.
     @Column(name = "timecode_ms")
     private Long timecodeMs;
+
+    // project members explicitly @-mentioned in this comment (picked from an
+    // autocomplete client-side, not parsed out of the body text) - each gets
+    // a MENTIONED notification when the comment is created.
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "mentioned_user_ids", columnDefinition = "jsonb", nullable = false)
+    private List<UUID> mentionedUserIds = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
@@ -78,6 +89,14 @@ public class Comment {
 
     public void setTimecodeMs(Long timecodeMs) {
         this.timecodeMs = timecodeMs;
+    }
+
+    public List<UUID> getMentionedUserIds() {
+        return mentionedUserIds;
+    }
+
+    public void setMentionedUserIds(List<UUID> mentionedUserIds) {
+        this.mentionedUserIds = mentionedUserIds;
     }
 
     public Instant getCreatedAt() {

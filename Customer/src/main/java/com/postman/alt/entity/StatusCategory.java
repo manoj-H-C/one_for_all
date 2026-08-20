@@ -30,6 +30,13 @@ public class StatusCategory {
     @Column(length = 255)
     private String description;
 
+    // one of the fixed palette keys (see color-hash.ts's PALETTE_KEYS on the
+    // frontend) - null means nobody has explicitly chosen one yet, in which
+    // case the frontend falls back to the same by-position color every
+    // category used to get before this was configurable.
+    @Column(length = 20)
+    private String color;
+
     protected StatusCategory() {
         // JPA
     }
@@ -37,11 +44,13 @@ public class StatusCategory {
     public StatusCategory(
             Project project,
             String name,
-            String description
+            String description,
+            String color
     ) {
         this.project = project;
         this.name = name;
         this.description = description;
+        this.color = color;
     }
 
     public UUID getId() {
@@ -66,5 +75,13 @@ public class StatusCategory {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getColor() {
+        return color;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
     }
 }

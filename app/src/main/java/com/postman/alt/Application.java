@@ -2,8 +2,13 @@ package com.postman.alt;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration;
+import org.springframework.data.web.config.EnableSpringDataWebSupport;
 
-@SpringBootApplication
+import static org.springframework.data.web.config.EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO;
+
+@SpringBootApplication(exclude = { UserDetailsServiceAutoConfiguration.class })
+@EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)
 public class Application {
 
     public static void main(String[] args) {

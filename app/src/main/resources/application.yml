@@ -26,3 +26,33 @@ logging:
   level:
     org.flywaydb: DEBUG
     org.springframework.boot.autoconfigure.flyway: DEBUG
+
+# dev-only default - override with a real secret (env var JWT_SECRET) in
+# every non-local environment. Must be at least 32 chars (HS256 needs a
+# 256-bit key).
+jwt:
+  # dev-only default (a real random key, just not a secret one) - override
+  # with JWT_SECRET in every non-local environment. Same convention as
+  # app.encryption.key: base64-encoded random bytes, generate a real one with
+  # EncryptionKeyGenerator or `openssl rand -base64 32`.
+  secret: ${JWT_SECRET:n9uRs0s6BMudbWTP6B9DB67Ywf108dEH99Hq5qMY6H4=}
+  # short-lived access token + long-lived refresh token (POST /api/auth/refresh
+  # trades a valid refresh token for a new pair). Both carry AppUser.tokenVersion,
+  # so a password reset invalidates every outstanding token of either kind at once.
+  access-token-expiration-minutes: 15
+  refresh-token-expiration-days: 30
+
+app:
+  encryption:
+    # dev-only default (a real random AES-256 key, just not a secret one) -
+    # override with ENCRYPTION_KEY in every non-local environment. Generate a
+    # real one with: openssl rand -base64 32
+    key: ${ENCRYPTION_KEY:7iAHpCHn28juC0XcpwhyXw5/Xe4J5FecPaRLRXLOXzo=}
+    # set to false locally to hit the API with plain JSON (e.g. from Postman)
+    # without needing a client-side AES implementation.
+    enabled: ${ENCRYPTION_ENABLED:false}
+  cors:
+    # comma-separated list of origins a browser frontend is allowed to call
+    # this API from. Override with CORS_ALLOWED_ORIGINS in every environment
+    # that isn't local dev.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,http://localhost:4200}

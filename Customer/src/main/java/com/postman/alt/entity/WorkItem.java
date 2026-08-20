@@ -52,9 +52,28 @@ public class WorkItem {
     @JoinColumn(name = "assignee_id")
     private AppUser assignee;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "reporter_id", nullable = false)
+    // optional - null means unassigned, same convention as assignee.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reporter_id")
     private AppUser reporter;
+
+    // optional - see Sprint's own javadoc. null means "backlog"/unscheduled.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sprint_id")
+    private Sprint sprint;
+
+    // optional - see WorkItemType's own javadoc. null means "no type set".
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "type_id")
+    private WorkItemType type;
+
+    // optional - null means this is a top-level item. When set, this item is
+    // a subtask of another WorkItem in the same project. Only one level deep
+    // is allowed (a subtask can't itself have subtasks) - enforced in the
+    // service layer, not here.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_work_item_id")
+    private WorkItem parent;
 
     @Column(nullable = false)
     private String title;
@@ -86,6 +105,12 @@ public class WorkItem {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt = Instant.now();
+
+    // null = active. Set on delete instead of removing the row, so its
+    // comments/attachments/links/activity history survive a delete and the
+    // action is recoverable at the DB level instead of destructive.
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
 
     protected WorkItem() {
         // JPA
@@ -129,6 +154,34 @@ public class WorkItem {
 
     public AppUser getReporter() {
         return reporter;
+    }
+
+    public void setReporter(AppUser reporter) {
+        this.reporter = reporter;
+    }
+
+    public Sprint getSprint() {
+        return sprint;
+    }
+
+    public void setSprint(Sprint sprint) {
+        this.sprint = sprint;
+    }
+
+    public WorkItemType getType() {
+        return type;
+    }
+
+    public void setType(WorkItemType type) {
+        this.type = type;
+    }
+
+    public WorkItem getParent() {
+        return parent;
+    }
+
+    public void setParent(WorkItem parent) {
+        this.parent = parent;
     }
 
     public String getTitle() {
@@ -181,5 +234,13 @@ public class WorkItem {
 
     public Set<Attachment> getAttachments() {
         return attachments;
+    }
+
+    public Instant getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void softDelete() {
+        this.deletedAt = Instant.now();
     }
 }

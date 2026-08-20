@@ -70,6 +70,13 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- just the PasswordEncoder/hashing utilities, not the full web
+             security starter (that stays in app, which owns the filter chain) -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+        </dependency>
+
     </dependencies>
 
 </project>
