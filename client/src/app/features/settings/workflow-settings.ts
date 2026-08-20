@@ -15,11 +15,21 @@ import { resolveProjectId } from '../../core/util/route.util';
 import { IconComponent } from '../../shared/ui/icon';
 import { StatusPillComponent } from '../../shared/ui/status-pill';
 import { EmptyStateComponent } from '../../shared/ui/empty-state';
-import { colorForIndex } from '../../shared/util/color-hash';
+import { ColorSwatchPickerComponent } from '../../shared/ui/color-swatch-picker';
+import { categoryColorFor } from '../../shared/util/color-hash';
 
 @Component({
   selector: 'app-workflow-settings',
-  imports: [FormsModule, CdkDropList, CdkDrag, CdkDragHandle, IconComponent, StatusPillComponent, EmptyStateComponent],
+  imports: [
+    FormsModule,
+    CdkDropList,
+    CdkDrag,
+    CdkDragHandle,
+    IconComponent,
+    StatusPillComponent,
+    EmptyStateComponent,
+    ColorSwatchPickerComponent,
+  ],
   template: `
     <div class="mx-auto flex max-w-5xl flex-col gap-6 animate-fade-in">
       <div>
@@ -62,7 +72,12 @@ import { colorForIndex } from '../../shared/util/color-hash';
               <div
                 class="group flex items-center gap-2.5 rounded-xl border border-transparent px-2.5 py-1.5 transition-colors hover:border-slate-200 hover:bg-slate-50/70"
               >
-                <span class="h-2.5 w-2.5 shrink-0 rounded-full {{ categoryColor(cat.id).dot }}"></span>
+                <app-color-swatch-picker
+                  [triggerDotClass]="categoryColor(cat.id).dot"
+                  [selectedKey]="cat.color"
+                  [disabled]="!canManage()"
+                  (colorChange)="updateCategory(cat, { color: $event })"
+                />
                 <input
                   type="text"
                   class="input h-8 flex-1 border-transparent bg-transparent px-1.5 py-1 text-sm focus:border-slate-300 focus:bg-white"
@@ -215,10 +230,9 @@ export class WorkflowSettingsComponent implements OnInit {
 
   readonly sortedStatuses = () => [...this.statuses()].sort((a, b) => a.sortOrder - b.sortOrder);
 
-  /** Every category gets its own palette slot by position in the list, so no two categories - and no two differently-categorized statuses - ever render with the same dot color. */
+  /** The category's own explicitly-chosen color if it has one, otherwise the same by-position fallback every category used to get before colors were pickable. */
   categoryColor(categoryId: string) {
-    const index = this.categories().findIndex((c) => c.id === categoryId);
-    return colorForIndex(index === -1 ? 0 : index);
+    return categoryColorFor(this.categories(), categoryId);
   }
 
   ngOnInit(): void {
@@ -244,7 +258,7 @@ export class WorkflowSettingsComponent implements OnInit {
     });
   }
 
-  updateCategory(cat: StatusCategoryResponse, patch: { name?: string; description?: string }): void {
+  updateCategory(cat: StatusCategoryResponse, patch: { name?: string; description?: string; color?: string }): void {
     this.workflowService.updateCategory(this.projectId, cat.id, patch).subscribe({
       next: (updated) => this.categories.update((list) => list.map((c) => (c.id === updated.id ? updated : c))),
       error: (err) => this.toast.error(err.message),

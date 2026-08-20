@@ -34,6 +34,36 @@ export function colorForIndex(index: number): (typeof PALETTE)[number] {
   return PALETTE[((index % PALETTE.length) + PALETTE.length) % PALETTE.length];
 }
 
+// key order matches PALETTE above exactly - this is the vocabulary a
+// StatusCategory's stored `color` field is validated against server-side too
+// (see WorkflowServiceImpl), so a category can be given a deliberately
+// chosen color instead of whatever colorForIndex happens to land on.
+export const PALETTE_KEYS = ['violet', 'sky', 'emerald', 'amber', 'rose', 'cyan', 'fuchsia', 'lime'] as const;
+export type PaletteColorKey = (typeof PALETTE_KEYS)[number];
+
+const PALETTE_BY_KEY: Record<PaletteColorKey, PaletteColor> = Object.fromEntries(
+  PALETTE_KEYS.map((key, index) => [key, PALETTE[index]]),
+) as Record<PaletteColorKey, PaletteColor>;
+
+export function colorForKey(key: string | null | undefined): PaletteColor | undefined {
+  return key && key in PALETTE_BY_KEY ? PALETTE_BY_KEY[key as PaletteColorKey] : undefined;
+}
+
+/**
+ * Resolves a status category's color: its own explicitly-chosen color if one
+ * is set, otherwise the same by-position fallback colorForIndex always used
+ * - so a category nobody has picked a color for yet still renders exactly
+ * like it did before this was configurable, and only diverges once someone
+ * actually chooses one.
+ */
+export function categoryColorFor(categories: { id: string; color?: string | null }[], categoryId: string): PaletteColor {
+  const category = categories.find((c) => c.id === categoryId);
+  const explicit = category ? colorForKey(category.color) : undefined;
+  if (explicit) return explicit;
+  const index = categories.findIndex((c) => c.id === categoryId);
+  return colorForIndex(index === -1 ? 0 : index);
+}
+
 export function initialsFor(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return '?';

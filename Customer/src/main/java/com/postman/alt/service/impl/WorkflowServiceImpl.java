@@ -3,6 +3,7 @@ package com.postman.alt.service.impl;
 import com.postman.alt.entity.Project;
 import com.postman.alt.entity.StatusCategory;
 import com.postman.alt.entity.WorkflowStatus;
+import com.postman.alt.exception.BadRequestException;
 import com.postman.alt.exception.ConflictException;
 import com.postman.alt.exception.ResourceNotFoundException;
 import com.postman.alt.repository.ProjectRepository;
@@ -27,6 +28,14 @@ import java.util.UUID;
 public class WorkflowServiceImpl implements WorkflowService {
 
     private static final String WORKFLOW_MANAGE = "WORKFLOW_MANAGE";
+
+    // kept in the exact same order as the frontend's PALETTE_KEYS
+    // (color-hash.ts) - a category's color must be one of these, and a new
+    // category with no explicit color gets the next one round-robin, by
+    // project category count, matching the by-position color every category
+    // used to get before colors were configurable.
+    private static final List<String> PALETTE_KEYS =
+            List.of("violet", "sky", "emerald", "amber", "rose", "cyan", "fuchsia", "lime");
 
     private final StatusCategoryRepository statusCategoryRepository;
     private final WorkflowStatusRepository workflowStatusRepository;
@@ -59,7 +68,12 @@ public class WorkflowServiceImpl implements WorkflowService {
     public StatusCategoryResponse createCategory(UUID projectId, UUID requesterId, StatusCategoryCreateRequest request) {
         projectAccessService.requirePermission(projectId, requesterId, WORKFLOW_MANAGE);
         Project project = getProject(projectId);
-        StatusCategory category = statusCategoryRepository.save(new StatusCategory(project, request.name(), request.description()));
+
+        String color = request.color() != null && !request.color().isBlank()
+                ? validatePaletteKey(request.color())
+                : nextAutoColor(projectId);
+
+        StatusCategory category = statusCategoryRepository.save(new StatusCategory(project, request.name(), request.description(), color));
         return toResponse(category);
     }
 
@@ -75,8 +89,23 @@ public class WorkflowServiceImpl implements WorkflowService {
         if (request.description() != null) {
             category.setDescription(request.description());
         }
+        if (request.color() != null && !request.color().isBlank()) {
+            category.setColor(validatePaletteKey(request.color()));
+        }
 
         return toResponse(category);
+    }
+
+    private String nextAutoColor(UUID projectId) {
+        long existingCount = statusCategoryRepository.countByProjectId(projectId);
+        return PALETTE_KEYS.get((int) (existingCount % PALETTE_KEYS.size()));
+    }
+
+    private String validatePaletteKey(String color) {
+        if (!PALETTE_KEYS.contains(color)) {
+            throw new BadRequestException("Unknown color: " + color);
+        }
+        return color;
     }
 
     @Override
@@ -170,7 +199,9 @@ public class WorkflowServiceImpl implements WorkflowService {
     }
 
     private StatusCategoryResponse toResponse(StatusCategory category) {
-        return new StatusCategoryResponse(category.getId(), category.getProject().getId(), category.getName(), category.getDescription());
+        return new StatusCategoryResponse(
+                category.getId(), category.getProject().getId(), category.getName(), category.getDescription(), category.getColor()
+        );
     }
 
     private WorkflowStatusResponse toResponse(WorkflowStatus status) {

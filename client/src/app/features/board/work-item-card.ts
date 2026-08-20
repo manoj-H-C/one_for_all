@@ -63,7 +63,7 @@ const ACCENT: Record<Priority, string> = {
         <div class="mt-3 flex flex-col gap-2 border-t border-slate-100 pt-3">
           <p class="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
             <app-icon name="list" [size]="12" />
-            Subtasks · {{ doneSubtaskCount() }}/{{ subtasks().length }}
+            Subtasks · {{ subtasks().length }}
           </p>
           @for (s of subtasks(); track s.id) {
             <app-work-item-card
@@ -71,7 +71,6 @@ const ACCENT: Record<Priority, string> = {
               [members]="members()"
               [types]="types()"
               [statusColors]="statusColors()"
-              [doneStatusId]="doneStatusId()"
               [nested]="true"
             />
           }
@@ -89,8 +88,6 @@ export class WorkItemCardComponent {
   readonly subtasks = input<WorkItemResponse[]>([]);
   /** statusId -> the same category color used for that status everywhere else on the board (columns, list view) - see board-page.ts's categoryColor(). Used to color the status pill shown on nested subtask cards. */
   readonly statusColors = input<Record<string, PaletteColor>>({});
-  /** The project's rightmost workflow status id, used as the "done" heuristic for the subtasks progress count - see board-page.ts. */
-  readonly doneStatusId = input<string>('');
   /** True when this card is rendered inside a parent card's subtask list rather than as a top-level board card - drops the drag cursor and gets a subdued background to read as nested. */
   readonly nested = input<boolean>(false);
 
@@ -104,8 +101,6 @@ export class WorkItemCardComponent {
     const index = this.types().findIndex((t) => t.id === this.item().typeId);
     return colorForIndex(index === -1 ? 0 : index);
   });
-
-  readonly doneSubtaskCount = computed(() => this.subtasks().filter((s) => s.statusId === this.doneStatusId()).length);
 
   assignee(): MemberResponse | undefined {
     return this.members().find((m) => m.userId === this.item().assigneeId);

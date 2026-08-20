@@ -16,7 +16,7 @@ import { ToastService } from '../../core/state/toast.service';
 import { WorkItemResponse } from '../../core/models/work-item.model';
 import { MemberResponse } from '../../core/models/member.model';
 import { CustomFieldResponse } from '../../core/models/custom-field.model';
-import { WorkflowStatusResponse } from '../../core/models/workflow.model';
+import { StatusCategoryResponse, WorkflowStatusResponse } from '../../core/models/workflow.model';
 import { SprintResponse } from '../../core/models/sprint.model';
 import { WorkItemTypeResponse } from '../../core/models/work-item-type.model';
 import { PRIORITIES, Priority } from '../../core/models/common.model';
@@ -25,12 +25,25 @@ import { ConfirmDialogService } from '../../shared/ui/confirm-dialog.service';
 import { resolveProjectId } from '../../core/util/route.util';
 import { CustomFieldsFormComponent } from '../../shared/ui/custom-fields-form';
 import { CreateWorkItemModalComponent } from '../board/create-work-item-modal';
+import { AvatarComponent } from '../../shared/ui/avatar';
+import { IconComponent } from '../../shared/ui/icon';
+import { PriorityBadgeComponent } from '../../shared/ui/priority-badge';
+import { StatusPillComponent } from '../../shared/ui/status-pill';
+import { categoryColorFor, colorForIndex } from '../../shared/util/color-hash';
 import { CommentsTabComponent } from './comments-tab';
 import { AttachmentsTabComponent } from './attachments-tab';
 import { LinksTabComponent } from './links-tab';
 import { ActivityTabComponent } from './activity-tab';
 
 type Tab = 'comments' | 'attachments' | 'links' | 'activity';
+
+const PRIORITY_ACCENT: Record<Priority, string> = {
+  LOWEST: '#94a3b8',
+  LOW: '#0ea5e9',
+  MEDIUM: '#f59e0b',
+  HIGH: '#fb923c',
+  HIGHEST: '#ef4444',
+};
 
 @Component({
   selector: 'app-work-item-detail',
@@ -40,6 +53,10 @@ type Tab = 'comments' | 'attachments' | 'links' | 'activity';
     RouterLink,
     CustomFieldsFormComponent,
     CreateWorkItemModalComponent,
+    AvatarComponent,
+    IconComponent,
+    PriorityBadgeComponent,
+    StatusPillComponent,
     CommentsTabComponent,
     AttachmentsTabComponent,
     LinksTabComponent,
@@ -73,6 +90,7 @@ export class WorkItemDetailComponent implements OnInit {
   readonly members = signal<MemberResponse[]>([]);
   readonly customFields = signal<CustomFieldResponse[]>([]);
   readonly statuses = signal<WorkflowStatusResponse[]>([]);
+  readonly categories = signal<StatusCategoryResponse[]>([]);
   readonly sprints = signal<SprintResponse[]>([]);
   readonly types = signal<WorkItemTypeResponse[]>([]);
   readonly subtasks = signal<WorkItemResponse[]>([]);
@@ -104,10 +122,27 @@ export class WorkItemDetailComponent implements OnInit {
   });
 
   readonly sortedStatuses = computed(() => [...this.statuses()].sort((a, b) => a.sortOrder - b.sortOrder));
-  // heuristic: the rightmost workflow column is treated as "done" for the
-  // subtask progress count, since statuses have no formal done/not-done flag.
-  private readonly doneStatusId = computed(() => this.sortedStatuses().at(-1)?.id ?? '');
-  readonly doneSubtaskCount = computed(() => this.subtasks().filter((s) => s.statusId === this.doneStatusId()).length);
+
+  readonly accent = computed(() => PRIORITY_ACCENT[this.item()?.priority ?? 'MEDIUM']);
+  readonly overdue = computed(() => {
+    const due = this.item()?.dueDate;
+    return !!due && due < new Date().toISOString().slice(0, 10);
+  });
+
+  /** The category's own explicitly-chosen color if it has one, otherwise the same by-position fallback used everywhere else. */
+  categoryColor(categoryId: string) {
+    return categoryColorFor(this.categories(), categoryId);
+  }
+
+  statusColor(statusId: string) {
+    const status = this.statuses().find((s) => s.id === statusId);
+    return this.categoryColor(status?.categoryId ?? '');
+  }
+
+  typeColor(typeId: string | null) {
+    const index = this.types().findIndex((t) => t.id === typeId);
+    return colorForIndex(index === -1 ? 0 : index);
+  }
 
   ngOnInit(): void {
     // subscribing to paramMap (rather than reading route.snapshot once)
@@ -132,14 +167,16 @@ export class WorkItemDetailComponent implements OnInit {
       members: this.memberService.list(this.projectId),
       customFields: this.customFieldService.list(this.projectId),
       statuses: this.workflowService.listStatuses(this.projectId),
+      categories: this.workflowService.listCategories(this.projectId),
       sprints: this.sprintService.list(this.projectId),
       types: this.workItemTypeService.list(this.projectId),
       subtasks: this.workItemService.list(this.projectId, { parentWorkItemId: id }, 0, 100),
-    }).subscribe(({ item, members, customFields, statuses, sprints, types, subtasks }) => {
+    }).subscribe(({ item, members, customFields, statuses, categories, sprints, types, subtasks }) => {
       this.applyItem(item);
       this.members.set(members);
       this.customFields.set(customFields);
       this.statuses.set(statuses);
+      this.categories.set(categories);
       this.sprints.set(sprints);
       this.types.set(types);
       this.subtasks.set(subtasks.content);

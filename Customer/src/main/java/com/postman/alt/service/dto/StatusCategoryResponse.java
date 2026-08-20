@@ -6,6 +6,7 @@ public record StatusCategoryResponse(
         UUID id,
         UUID projectId,
         String name,
-        String description
+        String description,
+        String color
 ) {
 }

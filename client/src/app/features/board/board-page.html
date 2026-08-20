@@ -185,7 +185,6 @@
                     [types]="types()"
                     [subtasks]="subtasksByParent()[item.id] ?? []"
                     [statusColors]="statusColorMap()"
-                    [doneStatusId]="doneStatusId()"
                   />
                 </div>
               } @empty {
@@ -273,6 +272,7 @@
   [open]="createOpen()"
   [projectId]="projectId"
   [statuses]="sortedStatuses()"
+  [categories]="categories()"
   [members]="members()"
   [customFields]="customFields()"
   [sprints]="sprints()"

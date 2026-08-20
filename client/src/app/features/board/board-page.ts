@@ -32,7 +32,7 @@ import { PriorityBadgeComponent } from '../../shared/ui/priority-badge';
 import { IconComponent } from '../../shared/ui/icon';
 import { DropdownMenuComponent } from '../../shared/ui/dropdown-menu';
 import { SearchableSelectComponent, SearchableSelectOption } from '../../shared/ui/searchable-select';
-import { PaletteColor, colorForIndex } from '../../shared/util/color-hash';
+import { PaletteColor, categoryColorFor } from '../../shared/util/color-hash';
 
 const BOARD_PAGE_SIZE = 200;
 
@@ -130,10 +130,6 @@ export class BoardPageComponent implements OnInit {
     if (this.view() === 'list') return this.listPage()?.totalElements ?? 0;
     return Object.values(this.itemsByStatus()).reduce((sum, arr) => sum + arr.length, 0);
   });
-
-  // heuristic: the rightmost workflow column is treated as "done" for
-  // subtask progress, since statuses carry no formal done/not-done flag.
-  readonly doneStatusId = computed(() => this.sortedStatuses().at(-1)?.id ?? '');
 
   /** statusId -> the same category color used for that status's board column, so the status pill on nested subtask cards matches the rest of the board instead of an unrelated color scheme. */
   readonly statusColorMap = computed(() => {
@@ -245,10 +241,9 @@ export class BoardPageComponent implements OnInit {
     this.searchDebounce = setTimeout(() => this.onFilterChange(), 400);
   }
 
-  /** Every category gets its own palette slot by position in the list, so no two categories - and no two differently-categorized statuses - ever render with the same dot color. Kept in sync with the same scheme in Workflow settings. */
+  /** The category's own explicitly-chosen color if it has one, otherwise the same by-position fallback every category used to get. Kept in sync with the same scheme in Workflow settings. */
   categoryColor(categoryId: string) {
-    const index = this.categories().findIndex((c) => c.id === categoryId);
-    return colorForIndex(index === -1 ? 0 : index);
+    return categoryColorFor(this.categories(), categoryId);
   }
 
   statusColor(statusId: string) {

@@ -95,9 +95,9 @@ public class ProjectServiceImpl implements ProjectService {
         }
         projectMemberRepository.save(new ProjectMember(project, requester, adminRole));
 
-        StatusCategory todo = statusCategoryRepository.save(new StatusCategory(project, "To Do", null));
-        StatusCategory inProgress = statusCategoryRepository.save(new StatusCategory(project, "In Progress", null));
-        StatusCategory done = statusCategoryRepository.save(new StatusCategory(project, "Done", null));
+        StatusCategory todo = statusCategoryRepository.save(new StatusCategory(project, "To Do", null, "violet"));
+        StatusCategory inProgress = statusCategoryRepository.save(new StatusCategory(project, "In Progress", null, "sky"));
+        StatusCategory done = statusCategoryRepository.save(new StatusCategory(project, "Done", null, "emerald"));
         workflowStatusRepository.save(new WorkflowStatus(project, "To Do", 0, todo));
         workflowStatusRepository.save(new WorkflowStatus(project, "In Progress", 1, inProgress));
         workflowStatusRepository.save(new WorkflowStatus(project, "Done", 2, done));

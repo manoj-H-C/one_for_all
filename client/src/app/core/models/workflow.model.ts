@@ -3,16 +3,23 @@ export interface StatusCategoryResponse {
   projectId: string;
   name: string;
   description: string | null;
+  // null means nobody has explicitly picked one yet - falls back to the same
+  // by-position color every category used to get (see categoryColorFor).
+  color: string | null;
 }
 
 export interface StatusCategoryCreateRequest {
   name: string;
   description?: string | null;
+  // optional - omit to have the backend auto-assign the next palette color,
+  // same as before this was configurable.
+  color?: string | null;
 }
 
 export interface StatusCategoryUpdateRequest {
   name?: string | null;
   description?: string | null;
+  color?: string | null;
 }
 
 export interface WorkflowStatusResponse {
