@@ -5,8 +5,12 @@ import { API_BASE_URL } from '../config/api.config';
 import { AuthResponse } from '../models/auth.model';
 import {
   OrganizationInvitationAcceptRequest,
+  OrganizationInvitationBulkCreateResult,
+  OrganizationInvitationBulkCreateRow,
   OrganizationInvitationCreateRequest,
   OrganizationInvitationResponse,
+  OrganizationMemberBulkCreateResult,
+  OrganizationMemberBulkCreateRow,
   OrganizationMemberCreateRequest,
   OrganizationMemberCreateResponse,
   OrganizationMemberResponse,
@@ -26,6 +30,13 @@ export class OrganizationService {
   // password (returned once in the response) instead of an email invite.
   createMember(request: OrganizationMemberCreateRequest): Observable<OrganizationMemberCreateResponse> {
     return this.http.post<OrganizationMemberCreateResponse>(`${BASE}/organizations/members`, request);
+  }
+
+  // processes every row independently - see the failed list in the result
+  // for any row that didn't get created and why, rather than the whole
+  // upload failing on one bad row.
+  bulkCreateMembers(rows: OrganizationMemberBulkCreateRow[]): Observable<OrganizationMemberBulkCreateResult> {
+    return this.http.post<OrganizationMemberBulkCreateResult>(`${BASE}/organizations/members/bulk`, { rows });
   }
 
   // removes every one of the user's project memberships and blocks them
@@ -50,6 +61,11 @@ export class OrganizationService {
 
   listInvitations(): Observable<OrganizationInvitationResponse[]> {
     return this.http.get<OrganizationInvitationResponse[]>(`${BASE}/organizations/invitations`);
+  }
+
+  // same per-row-independent behavior as bulkCreateMembers.
+  bulkCreateInvitations(rows: OrganizationInvitationBulkCreateRow[]): Observable<OrganizationInvitationBulkCreateResult> {
+    return this.http.post<OrganizationInvitationBulkCreateResult>(`${BASE}/organizations/invitations/bulk`, { rows });
   }
 
   revokeInvitation(invitationId: string): Observable<void> {

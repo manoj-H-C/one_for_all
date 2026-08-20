@@ -9,10 +9,86 @@ import {
   OrganizationMemberResponse,
   OrganizationInvitationResponse,
   OrganizationMemberCreateResponse,
+  OrganizationMemberBulkCreateRow,
+  OrganizationMemberBulkCreateResult,
+  OrganizationInvitationBulkCreateRow,
+  OrganizationInvitationBulkCreateResult,
 } from '../../core/models/organization.model';
 import { AvatarComponent } from '../../shared/ui/avatar';
 import { IconComponent } from '../../shared/ui/icon';
 import { EmptyStateComponent } from '../../shared/ui/empty-state';
+
+const BULK_CREATE_TEMPLATE_CSV =
+  'name,email,can_create_projects,can_manage_members\n' +
+  'John Doe,john@acme.com,yes,no\n' +
+  'Jane Smith,jane@acme.com,no,no\n';
+
+const BULK_INVITE_TEMPLATE_CSV =
+  'email,can_create_projects,can_manage_members\n' +
+  'john@acme.com,yes,no\n' +
+  'jane@acme.com,no,no\n';
+
+/** Minimal RFC4180 CSV parser - handles quoted fields (with embedded commas/newlines/escaped quotes) and bare CRLF/LF line endings. Good enough for a template this simple without pulling in a CSV library. */
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (inQuotes) {
+      if (char === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += char;
+      }
+      continue;
+    }
+    if (char === '"') {
+      inQuotes = true;
+    } else if (char === ',') {
+      row.push(field);
+      field = '';
+    } else if (char === '\n') {
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = '';
+    } else if (char !== '\r') {
+      field += char;
+    }
+  }
+  if (field.length > 0 || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
+  return rows.filter((r) => r.some((c) => c.trim() !== ''));
+}
+
+function toBool(value: string | undefined): boolean {
+  const v = (value ?? '').trim().toLowerCase();
+  return v === 'yes' || v === 'true' || v === '1' || v === 'y';
+}
+
+function csvEscape(value: string): string {
+  return /["\n,]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+function downloadCsv(content: string, filename: string): void {
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 @Component({
   selector: 'app-org-admin-page',
@@ -106,6 +182,143 @@ import { EmptyStateComponent } from '../../shared/ui/empty-state';
             }
             <button type="button" class="btn-primary w-full" [disabled]="!inviteEmail().trim()" (click)="invite()">Send invite</button>
           </div>
+        </div>
+      </div>
+
+      <div class="card p-5">
+        <div class="mb-4 flex items-center gap-3">
+          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
+            <app-icon name="list" [size]="17" />
+          </span>
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-slate-800">Bulk create from file</p>
+            <p class="truncate text-xs text-slate-500">Download the template, fill it in, then upload it back.</p>
+          </div>
+        </div>
+        <div class="flex flex-col gap-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" class="btn-secondary" (click)="downloadTemplate()">Download template</button>
+            <input #bulkFileInput type="file" accept=".csv" class="hidden" (change)="onBulkFileSelected($event)" />
+            <button type="button" class="btn-secondary" (click)="bulkFileInput.click()">Choose file</button>
+            @if (bulkFile(); as f) {
+              <span class="truncate text-xs text-slate-500">{{ f.name }}</span>
+            }
+          </div>
+          <button
+            type="button"
+            class="btn-primary w-full"
+            [disabled]="!bulkFile() || bulkUploading()"
+            (click)="uploadBulkFile(bulkFileInput)"
+          >
+            {{ bulkUploading() ? 'Uploading…' : 'Upload and create' }}
+          </button>
+
+          @if (bulkResult(); as result) {
+            <div class="mt-1 flex flex-col gap-3 rounded-xl border border-slate-100 p-3.5">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <p class="text-sm text-slate-700">
+                  <span class="font-semibold text-emerald-600">{{ result.created.length }} created</span>
+                  @if (result.failed.length > 0) {
+                    <span class="text-slate-400"> · </span>
+                    <span class="font-semibold text-red-600">{{ result.failed.length }} failed</span>
+                  }
+                </p>
+                @if (result.created.length > 0) {
+                  <button type="button" class="text-xs font-semibold text-primary-600 hover:text-primary-700" (click)="downloadCredentials()">
+                    Download credentials (CSV)
+                  </button>
+                }
+              </div>
+              @if (result.failed.length > 0) {
+                <div class="overflow-x-auto rounded-lg border border-red-100">
+                  <table class="w-full min-w-[420px] text-xs">
+                    <thead class="bg-red-50 text-left font-semibold text-red-700">
+                      <tr>
+                        <th class="px-3 py-2">Row</th>
+                        <th class="px-3 py-2">Name</th>
+                        <th class="px-3 py-2">Email</th>
+                        <th class="px-3 py-2">Reason</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-red-100">
+                      @for (f of result.failed; track f.rowNumber) {
+                        <tr>
+                          <td class="px-3 py-2 text-slate-500">{{ f.rowNumber }}</td>
+                          <td class="px-3 py-2 text-slate-700">{{ f.name || '—' }}</td>
+                          <td class="px-3 py-2 text-slate-700">{{ f.email || '—' }}</td>
+                          <td class="px-3 py-2 text-red-700">{{ f.reason }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="card p-5">
+        <div class="mb-4 flex items-center gap-3">
+          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+            <app-icon name="mail" [size]="17" />
+          </span>
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-slate-800">Bulk invite by email</p>
+            <p class="truncate text-xs text-slate-500">Download the template, fill it in, then upload it back.</p>
+          </div>
+        </div>
+        <div class="flex flex-col gap-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" class="btn-secondary" (click)="downloadInviteTemplate()">Download template</button>
+            <input #bulkInviteFileInput type="file" accept=".csv" class="hidden" (change)="onBulkInviteFileSelected($event)" />
+            <button type="button" class="btn-secondary" (click)="bulkInviteFileInput.click()">Choose file</button>
+            @if (bulkInviteFile(); as f) {
+              <span class="truncate text-xs text-slate-500">{{ f.name }}</span>
+            }
+          </div>
+          <button
+            type="button"
+            class="btn-primary w-full"
+            [disabled]="!bulkInviteFile() || bulkInviteUploading()"
+            (click)="uploadBulkInviteFile(bulkInviteFileInput)"
+          >
+            {{ bulkInviteUploading() ? 'Uploading…' : 'Upload and send invites' }}
+          </button>
+
+          @if (bulkInviteResult(); as result) {
+            <div class="mt-1 flex flex-col gap-3 rounded-xl border border-slate-100 p-3.5">
+              <p class="text-sm text-slate-700">
+                <span class="font-semibold text-emerald-600">{{ result.created.length }} invited</span>
+                @if (result.failed.length > 0) {
+                  <span class="text-slate-400"> · </span>
+                  <span class="font-semibold text-red-600">{{ result.failed.length }} failed</span>
+                }
+              </p>
+              @if (result.failed.length > 0) {
+                <div class="overflow-x-auto rounded-lg border border-red-100">
+                  <table class="w-full min-w-[360px] text-xs">
+                    <thead class="bg-red-50 text-left font-semibold text-red-700">
+                      <tr>
+                        <th class="px-3 py-2">Row</th>
+                        <th class="px-3 py-2">Email</th>
+                        <th class="px-3 py-2">Reason</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-red-100">
+                      @for (f of result.failed; track f.rowNumber) {
+                        <tr>
+                          <td class="px-3 py-2 text-slate-500">{{ f.rowNumber }}</td>
+                          <td class="px-3 py-2 text-slate-700">{{ f.email || '—' }}</td>
+                          <td class="px-3 py-2 text-red-700">{{ f.reason }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </div>
+          }
         </div>
       </div>
 
@@ -264,6 +477,14 @@ export class OrgAdminPageComponent implements OnInit {
   readonly createCanManageMembers = signal(false);
   readonly revealed = signal<OrganizationMemberCreateResponse | null>(null);
 
+  readonly bulkFile = signal<File | null>(null);
+  readonly bulkUploading = signal(false);
+  readonly bulkResult = signal<OrganizationMemberBulkCreateResult | null>(null);
+
+  readonly bulkInviteFile = signal<File | null>(null);
+  readonly bulkInviteUploading = signal(false);
+  readonly bulkInviteResult = signal<OrganizationInvitationBulkCreateResult | null>(null);
+
   ngOnInit(): void {
     forkJoin({
       members: this.organizationService.listMembers(),
@@ -332,6 +553,150 @@ export class OrgAdminPageComponent implements OnInit {
 
   copyTempPassword(password: string): void {
     navigator.clipboard.writeText(password).then(() => this.toast.success('Copied to clipboard'));
+  }
+
+  downloadTemplate(): void {
+    downloadCsv(BULK_CREATE_TEMPLATE_CSV, 'user_bulk_upload_template.csv');
+  }
+
+  downloadInviteTemplate(): void {
+    downloadCsv(BULK_INVITE_TEMPLATE_CSV, 'user_bulk_invite_template.csv');
+  }
+
+  onBulkFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.bulkFile.set(input.files?.[0] ?? null);
+    this.bulkResult.set(null);
+  }
+
+  uploadBulkFile(fileInputEl: HTMLInputElement): void {
+    const file = this.bulkFile();
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const rows = parseCsv(String(reader.result ?? ''));
+      if (rows.length === 0) {
+        this.toast.error('No rows found in that file');
+        return;
+      }
+      const header = rows[0].map((h) => h.trim().toLowerCase());
+      const nameIdx = header.indexOf('name');
+      const emailIdx = header.indexOf('email');
+      if (nameIdx === -1 || emailIdx === -1) {
+        this.toast.error('Columns not recognized — please use the downloaded template');
+        return;
+      }
+      const createIdx = header.indexOf('can_create_projects');
+      const manageIdx = header.indexOf('can_manage_members');
+
+      const bulkRows: OrganizationMemberBulkCreateRow[] = rows.slice(1).map((cols, i) => ({
+        rowNumber: i + 2, // +1 for 0-based index, +1 for the header row
+        name: cols[nameIdx] ?? '',
+        email: cols[emailIdx] ?? '',
+        canCreateProjects: toBool(createIdx >= 0 ? cols[createIdx] : undefined),
+        canManageMembers: toBool(manageIdx >= 0 ? cols[manageIdx] : undefined),
+      }));
+
+      this.bulkUploading.set(true);
+      this.organizationService.bulkCreateMembers(bulkRows).subscribe({
+        next: (result) => {
+          this.bulkUploading.set(false);
+          this.bulkResult.set(result);
+          if (result.created.length > 0) {
+            this.members.update((list) => [
+              ...list,
+              ...result.created.map((c) => ({
+                id: c.id,
+                name: c.name,
+                email: c.email,
+                owner: false,
+                canCreateProjects: c.canCreateProjects,
+                canManageMembers: c.canManageMembers,
+                createdAt: c.createdAt,
+              })),
+            ]);
+          }
+          this.bulkFile.set(null);
+          fileInputEl.value = '';
+          this.toast.success(
+            `${result.created.length} user${result.created.length === 1 ? '' : 's'} created` +
+              (result.failed.length > 0 ? `, ${result.failed.length} failed` : ''),
+          );
+        },
+        error: (err) => {
+          this.bulkUploading.set(false);
+          this.toast.error(err.message);
+        },
+      });
+    };
+    reader.readAsText(file);
+  }
+
+  downloadCredentials(): void {
+    const created = this.bulkResult()?.created ?? [];
+    if (created.length === 0) return;
+    const body = created
+      .map((c) => [csvEscape(c.name), csvEscape(c.email), csvEscape(c.temporaryPassword)].join(','))
+      .join('\n');
+    downloadCsv(`name,email,temporary_password\n${body}\n`, 'new_user_credentials.csv');
+  }
+
+  onBulkInviteFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.bulkInviteFile.set(input.files?.[0] ?? null);
+    this.bulkInviteResult.set(null);
+  }
+
+  uploadBulkInviteFile(fileInputEl: HTMLInputElement): void {
+    const file = this.bulkInviteFile();
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const rows = parseCsv(String(reader.result ?? ''));
+      if (rows.length === 0) {
+        this.toast.error('No rows found in that file');
+        return;
+      }
+      const header = rows[0].map((h) => h.trim().toLowerCase());
+      const emailIdx = header.indexOf('email');
+      if (emailIdx === -1) {
+        this.toast.error('Columns not recognized — please use the downloaded template');
+        return;
+      }
+      const createIdx = header.indexOf('can_create_projects');
+      const manageIdx = header.indexOf('can_manage_members');
+
+      const bulkRows: OrganizationInvitationBulkCreateRow[] = rows.slice(1).map((cols, i) => ({
+        rowNumber: i + 2,
+        email: cols[emailIdx] ?? '',
+        canCreateProjects: toBool(createIdx >= 0 ? cols[createIdx] : undefined),
+        canManageMembers: toBool(manageIdx >= 0 ? cols[manageIdx] : undefined),
+      }));
+
+      this.bulkInviteUploading.set(true);
+      this.organizationService.bulkCreateInvitations(bulkRows).subscribe({
+        next: (result) => {
+          this.bulkInviteUploading.set(false);
+          this.bulkInviteResult.set(result);
+          if (result.created.length > 0) {
+            this.invitations.update((list) => [...result.created, ...list]);
+          }
+          this.bulkInviteFile.set(null);
+          fileInputEl.value = '';
+          this.toast.success(
+            `${result.created.length} invite${result.created.length === 1 ? '' : 's'} sent` +
+              (result.failed.length > 0 ? `, ${result.failed.length} failed` : ''),
+          );
+        },
+        error: (err) => {
+          this.bulkInviteUploading.set(false);
+          this.toast.error(err.message);
+        },
+      });
+    };
+    reader.readAsText(file);
   }
 
   toggleCreateProjects(member: OrganizationMemberResponse, event: Event): void {

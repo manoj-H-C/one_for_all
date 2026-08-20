@@ -5,8 +5,12 @@ import com.postman.alt.service.AuthService;
 import com.postman.alt.service.OrganizationService;
 import com.postman.alt.service.dto.AuthResponse;
 import com.postman.alt.service.dto.OrganizationInvitationAcceptRequest;
+import com.postman.alt.service.dto.OrganizationInvitationBulkCreateRequest;
+import com.postman.alt.service.dto.OrganizationInvitationBulkCreateResult;
 import com.postman.alt.service.dto.OrganizationInvitationCreateRequest;
 import com.postman.alt.service.dto.OrganizationInvitationResponse;
+import com.postman.alt.service.dto.OrganizationMemberBulkCreateRequest;
+import com.postman.alt.service.dto.OrganizationMemberBulkCreateResult;
 import com.postman.alt.service.dto.OrganizationMemberCreateRequest;
 import com.postman.alt.service.dto.OrganizationMemberCreateResponse;
 import com.postman.alt.service.dto.OrganizationMemberResponse;
@@ -53,6 +57,11 @@ public class OrganizationController {
         );
     }
 
+    @PostMapping("/api/organizations/members/bulk")
+    public OrganizationMemberBulkCreateResult bulkCreateMembers(@RequestBody OrganizationMemberBulkCreateRequest request) {
+        return organizationService.bulkCreateMembers(CurrentUser.id(), request);
+    }
+
     @DeleteMapping("/api/organizations/members/{userId}")
     public ResponseEntity<Void> deleteMember(@PathVariable UUID userId) {
         organizationService.deleteMember(userId, CurrentUser.id());
@@ -84,6 +93,11 @@ public class OrganizationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 organizationService.createInvitation(CurrentUser.id(), request)
         );
+    }
+
+    @PostMapping("/api/organizations/invitations/bulk")
+    public OrganizationInvitationBulkCreateResult bulkCreateInvitations(@RequestBody OrganizationInvitationBulkCreateRequest request) {
+        return organizationService.bulkCreateInvitations(CurrentUser.id(), request);
     }
 
     @GetMapping("/api/organizations/invitations")

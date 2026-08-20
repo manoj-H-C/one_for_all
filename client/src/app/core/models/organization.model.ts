@@ -57,3 +57,44 @@ export interface OrganizationMemberCreateResponse {
   temporaryPassword: string;
   createdAt: string;
 }
+
+// rowNumber matches the row the person would see if they opened the
+// uploaded file in a spreadsheet app (header row is row 1), so a failure
+// can be reported back against something they recognize.
+export interface OrganizationMemberBulkCreateRow {
+  rowNumber: number;
+  name: string;
+  email: string;
+  canCreateProjects: boolean;
+  canManageMembers: boolean;
+}
+
+export interface OrganizationMemberBulkCreateFailure {
+  rowNumber: number;
+  name: string;
+  email: string;
+  reason: string;
+}
+
+export interface OrganizationMemberBulkCreateResult {
+  created: OrganizationMemberCreateResponse[];
+  failed: OrganizationMemberBulkCreateFailure[];
+}
+
+export interface OrganizationInvitationBulkCreateRow {
+  rowNumber: number;
+  email: string;
+  canCreateProjects: boolean;
+  canManageMembers: boolean;
+}
+
+export interface OrganizationInvitationBulkCreateFailure {
+  rowNumber: number;
+  email: string;
+  reason: string;
+}
+
+export interface OrganizationInvitationBulkCreateResult {
+  created: OrganizationInvitationResponse[];
+  failed: OrganizationInvitationBulkCreateFailure[];
+}
