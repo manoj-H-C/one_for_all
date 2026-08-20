@@ -20,10 +20,11 @@ import { AvatarComponent } from '../../shared/ui/avatar';
 import { IconComponent } from '../../shared/ui/icon';
 import { StatusPillComponent } from '../../shared/ui/status-pill';
 import { EmptyStateComponent } from '../../shared/ui/empty-state';
+import { SearchableSelectComponent, SearchableSelectOption } from '../../shared/ui/searchable-select';
 
 @Component({
   selector: 'app-members-settings',
-  imports: [FormsModule, AvatarComponent, IconComponent, StatusPillComponent, EmptyStateComponent],
+  imports: [FormsModule, AvatarComponent, IconComponent, StatusPillComponent, EmptyStateComponent, SearchableSelectComponent],
   template: `
     <div class="mx-auto flex max-w-4xl flex-col gap-6 animate-fade-in">
       <div>
@@ -50,12 +51,12 @@ import { EmptyStateComponent } from '../../shared/ui/empty-state';
                 </div>
               </div>
               <div class="flex flex-col gap-3">
-                <select class="input" [(ngModel)]="addMemberUserId">
-                  <option value="" disabled>Select a person…</option>
-                  @for (m of availableOrgMembers(); track m.id) {
-                    <option [value]="m.id">{{ m.name }} ({{ m.email }})</option>
-                  }
-                </select>
+                <app-searchable-select
+                  [options]="orgMemberOptions()"
+                  [value]="addMemberUserId()"
+                  placeholder="Select a person…"
+                  (valueChange)="addMemberUserId.set($event)"
+                />
                 <select class="input" [(ngModel)]="addMemberRoleId">
                   @for (r of roles(); track r.id) {
                     <option [value]="r.id">{{ r.name }}</option>
@@ -240,6 +241,12 @@ export class MembersSettingsComponent implements OnInit {
 
   readonly availableOrgMembers = computed(() =>
     this.orgMembers().filter((om) => !this.members().some((m) => m.userId === om.id)),
+  );
+  // label includes the email so the searchable select's existing
+  // label-substring filter doubles as a search-by-email match too, with no
+  // changes needed to the shared component itself.
+  readonly orgMemberOptions = computed<SearchableSelectOption[]>(() =>
+    this.availableOrgMembers().map((m) => ({ value: m.id, label: `${m.name} (${m.email})` })),
   );
 
   readonly filteredMembers = computed(() => {

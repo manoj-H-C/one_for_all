@@ -25,6 +25,10 @@ public record WorkItemCreateRequest(
         // optional - omit to leave it untyped. Must be a WorkItemType that
         // belongs to this project when given.
         UUID typeId,
+        // optional - omit to create a top-level item. Must be a WorkItem
+        // that belongs to this project when given, and must not itself be a
+        // subtask (only one level of nesting is allowed).
+        UUID parentWorkItemId,
         String priority,
         LocalDate dueDate,
         Map<String, Object> customFields

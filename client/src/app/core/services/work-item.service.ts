@@ -34,6 +34,7 @@ export class WorkItemService {
     if (filter.reporterId) params = params.set('reporterId', filter.reporterId);
     if (filter.sprintId) params = params.set('sprintId', filter.sprintId);
     if (filter.typeId) params = params.set('typeId', filter.typeId);
+    if (filter.parentWorkItemId) params = params.set('parentWorkItemId', filter.parentWorkItemId);
     if (filter.priority) params = params.set('priority', filter.priority);
     if (filter.q) params = params.set('q', filter.q);
     return this.http.get<Page<WorkItemResponse>>(`${BASE}/projects/${projectId}/work-items`, { params });

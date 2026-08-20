@@ -116,7 +116,7 @@ import { CustomFieldsFormComponent } from '../../shared/ui/custom-fields-form';
         <div class="mt-2 flex justify-end gap-2">
           <button type="button" class="btn-secondary" (click)="close()">Cancel</button>
           <button type="submit" class="btn-primary" [disabled]="!title().trim() || submitting()">
-            {{ submitting() ? 'Creating…' : 'Create ' + currentProjectStore.itemLabelSingular().toLowerCase() }}
+            {{ submitting() ? 'Creating…' : parentWorkItemId() ? 'Create subtask' : 'Create ' + currentProjectStore.itemLabelSingular().toLowerCase() }}
           </button>
         </div>
       </form>
@@ -127,7 +127,9 @@ export class CreateWorkItemModalComponent {
   private readonly workItemService = inject(WorkItemService);
 
   readonly currentProjectStore = inject(CurrentProjectStore);
-  protected readonly modalTitle = computed(() => `New ${this.currentProjectStore.itemLabelSingular().toLowerCase()}`);
+  protected readonly modalTitle = computed(() =>
+    this.parentWorkItemId() ? 'New subtask' : `New ${this.currentProjectStore.itemLabelSingular().toLowerCase()}`,
+  );
 
   readonly open = input.required<boolean>();
   readonly projectId = input.required<string>();
@@ -136,6 +138,9 @@ export class CreateWorkItemModalComponent {
   readonly customFields = input<CustomFieldResponse[]>([]);
   readonly sprints = input<SprintResponse[]>([]);
   readonly types = input<WorkItemTypeResponse[]>([]);
+  // when set, the created item is a subtask of this work item instead of a
+  // top-level item - locked in by the caller, not editable in this form.
+  readonly parentWorkItemId = input<string | null>(null);
 
   readonly closed = output<void>();
   readonly created = output<WorkItemResponse>();
@@ -178,6 +183,7 @@ export class CreateWorkItemModalComponent {
         reporterId: this.reporterId() || null,
         sprintId: this.sprintId() || null,
         typeId: this.typeId() || null,
+        parentWorkItemId: this.parentWorkItemId() || null,
         priority: this.priority(),
         dueDate: this.dueDate() || null,
         customFields: this.customFieldValues(),

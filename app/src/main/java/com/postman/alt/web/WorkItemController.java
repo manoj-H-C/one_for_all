@@ -58,11 +58,14 @@ public class WorkItemController {
             @RequestParam(required = false) UUID reporterId,
             @RequestParam(required = false) UUID sprintId,
             @RequestParam(required = false) UUID typeId,
+            @RequestParam(required = false) UUID parentWorkItemId,
             @RequestParam(required = false) String priority,
             @RequestParam(required = false) String q,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        return workItemService.list(projectId, CurrentUser.id(), statusId, assigneeId, reporterId, sprintId, typeId, priority, q, pageable);
+        return workItemService.list(
+                projectId, CurrentUser.id(), statusId, assigneeId, reporterId, sprintId, typeId, parentWorkItemId, priority, q, pageable
+        );
     }
 
     @GetMapping("/api/work-items/{id}")

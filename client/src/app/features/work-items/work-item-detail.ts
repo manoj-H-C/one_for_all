@@ -1,7 +1,7 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { WorkItemService } from '../../core/services/work-item.service';
@@ -24,6 +24,7 @@ import { PERMISSION_CODE } from '../../core/models/role.model';
 import { ConfirmDialogService } from '../../shared/ui/confirm-dialog.service';
 import { resolveProjectId } from '../../core/util/route.util';
 import { CustomFieldsFormComponent } from '../../shared/ui/custom-fields-form';
+import { CreateWorkItemModalComponent } from '../board/create-work-item-modal';
 import { CommentsTabComponent } from './comments-tab';
 import { AttachmentsTabComponent } from './attachments-tab';
 import { LinksTabComponent } from './links-tab';
@@ -38,6 +39,7 @@ type Tab = 'comments' | 'attachments' | 'links' | 'activity';
     DatePipe,
     RouterLink,
     CustomFieldsFormComponent,
+    CreateWorkItemModalComponent,
     CommentsTabComponent,
     AttachmentsTabComponent,
     LinksTabComponent,
@@ -57,9 +59,14 @@ export class WorkItemDetailComponent implements OnInit {
   private readonly permissions = inject(ProjectPermissionsService);
   private readonly toast = inject(ToastService);
   private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly destroyRef = inject(DestroyRef);
   readonly currentProjectStore = inject(CurrentProjectStore);
 
-  readonly workItemId = this.route.snapshot.paramMap.get('id')!;
+  // reassigned on every navigation - see ngOnInit. Not a signal because
+  // every other piece of this page's data (item, subtasks, etc.) is already
+  // reloaded imperatively inside loadWorkItem() rather than reactively
+  // derived from it.
+  workItemId = this.route.snapshot.paramMap.get('id')!;
   readonly projectId = resolveProjectId(this.route);
 
   readonly item = signal<WorkItemResponse | null>(null);
@@ -68,6 +75,8 @@ export class WorkItemDetailComponent implements OnInit {
   readonly statuses = signal<WorkflowStatusResponse[]>([]);
   readonly sprints = signal<SprintResponse[]>([]);
   readonly types = signal<WorkItemTypeResponse[]>([]);
+  readonly subtasks = signal<WorkItemResponse[]>([]);
+  readonly createSubtaskOpen = signal(false);
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly activeTab = signal<Tab>('comments');
@@ -90,24 +99,63 @@ export class WorkItemDetailComponent implements OnInit {
   readonly canComment = toSignal(this.permissions.has(this.projectId, PERMISSION_CODE.COMMENT_CREATE), {
     initialValue: false,
   });
+  readonly canCreate = toSignal(this.permissions.has(this.projectId, PERMISSION_CODE.WORK_ITEM_CREATE), {
+    initialValue: false,
+  });
+
+  readonly sortedStatuses = computed(() => [...this.statuses()].sort((a, b) => a.sortOrder - b.sortOrder));
+  // heuristic: the rightmost workflow column is treated as "done" for the
+  // subtask progress count, since statuses have no formal done/not-done flag.
+  private readonly doneStatusId = computed(() => this.sortedStatuses().at(-1)?.id ?? '');
+  readonly doneSubtaskCount = computed(() => this.subtasks().filter((s) => s.statusId === this.doneStatusId()).length);
 
   ngOnInit(): void {
+    // subscribing to paramMap (rather than reading route.snapshot once)
+    // matters here because navigating from an item to one of its subtasks -
+    // or vice versa via the "Subtask of" breadcrumb - hits this exact same
+    // route with just a different :id, so Angular reuses this component
+    // instance instead of re-creating it. Without this subscription the
+    // page would never notice the id changed.
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const id = params.get('id');
+      if (!id) return;
+      this.workItemId = id;
+      this.loadWorkItem(id);
+    });
+  }
+
+  private loadWorkItem(id: string): void {
+    this.loading.set(true);
+    this.activeTab.set('comments');
     forkJoin({
-      item: this.workItemService.get(this.workItemId),
+      item: this.workItemService.get(id),
       members: this.memberService.list(this.projectId),
       customFields: this.customFieldService.list(this.projectId),
       statuses: this.workflowService.listStatuses(this.projectId),
       sprints: this.sprintService.list(this.projectId),
       types: this.workItemTypeService.list(this.projectId),
-    }).subscribe(({ item, members, customFields, statuses, sprints, types }) => {
+      subtasks: this.workItemService.list(this.projectId, { parentWorkItemId: id }, 0, 100),
+    }).subscribe(({ item, members, customFields, statuses, sprints, types, subtasks }) => {
       this.applyItem(item);
       this.members.set(members);
       this.customFields.set(customFields);
       this.statuses.set(statuses);
       this.sprints.set(sprints);
       this.types.set(types);
+      this.subtasks.set(subtasks.content);
       this.loading.set(false);
     });
+  }
+
+  memberName(userId: string | null): string {
+    if (!userId) return 'Unassigned';
+    return this.members().find((m) => m.userId === userId)?.name ?? 'Unknown';
+  }
+
+  onSubtaskCreated(subtask: WorkItemResponse): void {
+    this.createSubtaskOpen.set(false);
+    this.subtasks.update((list) => [subtask, ...list]);
+    this.toast.success('Subtask created');
   }
 
   private applyItem(item: WorkItemResponse): void {

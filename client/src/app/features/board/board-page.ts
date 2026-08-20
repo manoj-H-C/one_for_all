@@ -32,7 +32,7 @@ import { PriorityBadgeComponent } from '../../shared/ui/priority-badge';
 import { IconComponent } from '../../shared/ui/icon';
 import { DropdownMenuComponent } from '../../shared/ui/dropdown-menu';
 import { SearchableSelectComponent, SearchableSelectOption } from '../../shared/ui/searchable-select';
-import { colorForIndex } from '../../shared/util/color-hash';
+import { PaletteColor, colorForIndex } from '../../shared/util/color-hash';
 
 const BOARD_PAGE_SIZE = 200;
 
@@ -79,6 +79,7 @@ export class BoardPageComponent implements OnInit {
   readonly sprints = signal<SprintResponse[]>([]);
   readonly types = signal<WorkItemTypeResponse[]>([]);
   readonly itemsByStatus = signal<Record<string, WorkItemResponse[]>>({});
+  readonly subtasksByParent = signal<Record<string, WorkItemResponse[]>>({});
   readonly loading = signal(true);
   readonly createOpen = signal(false);
 
@@ -128,6 +129,19 @@ export class BoardPageComponent implements OnInit {
   readonly totalItemCount = computed(() => {
     if (this.view() === 'list') return this.listPage()?.totalElements ?? 0;
     return Object.values(this.itemsByStatus()).reduce((sum, arr) => sum + arr.length, 0);
+  });
+
+  // heuristic: the rightmost workflow column is treated as "done" for
+  // subtask progress, since statuses carry no formal done/not-done flag.
+  readonly doneStatusId = computed(() => this.sortedStatuses().at(-1)?.id ?? '');
+
+  /** statusId -> the same category color used for that status's board column, so the status pill on nested subtask cards matches the rest of the board instead of an unrelated color scheme. */
+  readonly statusColorMap = computed(() => {
+    const map: Record<string, PaletteColor> = {};
+    for (const status of this.statuses()) {
+      map[status.id] = this.statusColor(status.id);
+    }
+    return map;
   });
 
   clearFilters(): void {
@@ -183,10 +197,19 @@ export class BoardPageComponent implements OnInit {
       for (const status of this.statuses()) {
         grouped[status.id] = [];
       }
+      // subtasks don't get their own board card - they're nested inside
+      // their parent's card instead, so they're grouped by parent here
+      // rather than dropped into a status column like top-level items.
+      const subtasks: Record<string, WorkItemResponse[]> = {};
       for (const item of page.content) {
-        (grouped[item.statusId] ??= []).push(item);
+        if (item.parentWorkItemId) {
+          (subtasks[item.parentWorkItemId] ??= []).push(item);
+        } else {
+          (grouped[item.statusId] ??= []).push(item);
+        }
       }
       this.itemsByStatus.set(grouped);
+      this.subtasksByParent.set(subtasks);
       this.loading.set(false);
     });
   }

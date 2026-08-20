@@ -11,6 +11,8 @@ export interface WorkItemResponse {
   sprintName: string | null;
   typeId: string | null;
   typeName: string | null;
+  parentWorkItemId: string | null;
+  parentWorkItemTitle: string | null;
   title: string;
   description: string | null;
   priority: Priority;
@@ -34,6 +36,9 @@ export interface WorkItemCreateRequest {
   // optional - omit to leave it untyped. Must be a work item type that
   // belongs to this project when given.
   typeId?: string | null;
+  // optional - omit to create a top-level item. Must be another work item
+  // in this project when given, and that item must not itself be a subtask.
+  parentWorkItemId?: string | null;
   priority?: Priority | null;
   dueDate?: string | null;
   customFields?: Record<string, unknown> | null;
@@ -53,6 +58,7 @@ export interface WorkItemFilter {
   reporterId?: string;
   sprintId?: string;
   typeId?: string;
+  parentWorkItemId?: string;
   priority?: Priority;
   q?: string;
 }

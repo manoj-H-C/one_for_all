@@ -179,7 +179,14 @@
             >
               @for (item of itemsByStatus()[status.id] ?? []; track item.id) {
                 <div cdkDrag [cdkDragData]="item" [cdkDragDisabled]="!canEdit()">
-                  <app-work-item-card [item]="item" [members]="members()" [types]="types()" />
+                  <app-work-item-card
+                    [item]="item"
+                    [members]="members()"
+                    [types]="types()"
+                    [subtasks]="subtasksByParent()[item.id] ?? []"
+                    [statusColors]="statusColorMap()"
+                    [doneStatusId]="doneStatusId()"
+                  />
                 </div>
               } @empty {
                 <div class="flex flex-1 items-center justify-center rounded-xl border border-dashed border-slate-200 py-8 text-xs text-slate-400">
@@ -217,7 +224,12 @@
               class="cursor-pointer transition-colors hover:bg-primary-50/40"
               [routerLink]="['/projects', projectId, 'work-items', item.id]"
             >
-              <td class="px-4 py-3 font-medium text-slate-800">{{ item.title }}</td>
+              <td class="px-4 py-3 font-medium text-slate-800">
+                {{ item.title }}
+                @if (item.parentWorkItemTitle; as parentTitle) {
+                  <span class="block text-xs font-normal text-slate-400">Subtask of {{ parentTitle }}</span>
+                }
+              </td>
               <td class="px-4 py-3"><app-status-pill [name]="item.statusName" [colorOverride]="statusColor(item.statusId)" /></td>
               <td class="px-4 py-3"><app-priority-badge [priority]="item.priority" /></td>
               <td class="px-4 py-3">

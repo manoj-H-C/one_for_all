@@ -16,6 +16,8 @@ public record WorkItemResponse(
         String sprintName,
         UUID typeId,
         String typeName,
+        UUID parentWorkItemId,
+        String parentWorkItemTitle,
         String title,
         String description,
         String priority,

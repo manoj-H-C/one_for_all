@@ -67,6 +67,14 @@ public class WorkItem {
     @JoinColumn(name = "type_id")
     private WorkItemType type;
 
+    // optional - null means this is a top-level item. When set, this item is
+    // a subtask of another WorkItem in the same project. Only one level deep
+    // is allowed (a subtask can't itself have subtasks) - enforced in the
+    // service layer, not here.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_work_item_id")
+    private WorkItem parent;
+
     @Column(nullable = false)
     private String title;
 
@@ -166,6 +174,14 @@ public class WorkItem {
 
     public void setType(WorkItemType type) {
         this.type = type;
+    }
+
+    public WorkItem getParent() {
+        return parent;
+    }
+
+    public void setParent(WorkItem parent) {
+        this.parent = parent;
     }
 
     public String getTitle() {

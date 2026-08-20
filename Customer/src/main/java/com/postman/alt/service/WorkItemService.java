@@ -15,7 +15,7 @@ public interface WorkItemService {
 
     Page<WorkItemResponse> list(
             UUID projectId, UUID requesterId, UUID statusId, UUID assigneeId, UUID reporterId, UUID sprintId, UUID typeId,
-            String priority, String q, Pageable pageable
+            UUID parentWorkItemId, String priority, String q, Pageable pageable
     );
 
     WorkItemResponse get(UUID id, UUID requesterId);

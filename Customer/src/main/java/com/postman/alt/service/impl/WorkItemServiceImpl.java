@@ -106,6 +106,9 @@ public class WorkItemServiceImpl implements WorkItemService {
         if (request.typeId() != null) {
             item.setType(resolveType(projectId, request.typeId()));
         }
+        if (request.parentWorkItemId() != null) {
+            item.setParent(resolveParent(projectId, request.parentWorkItemId()));
+        }
 
         Map<String, Object> customFields = mergeCustomFields(Map.of(), request.customFields());
         CustomFieldValidator.validate(customFieldDefinitionRepository.findByProjectId(projectId), customFields);
@@ -130,7 +133,7 @@ public class WorkItemServiceImpl implements WorkItemService {
     @Transactional(readOnly = true)
     public Page<WorkItemResponse> list(
             UUID projectId, UUID requesterId, UUID statusId, UUID assigneeId, UUID reporterId, UUID sprintId, UUID typeId,
-            String priority, String q, Pageable pageable
+            UUID parentWorkItemId, String priority, String q, Pageable pageable
     ) {
         projectAccessService.requireMemberOrOwner(projectId, requesterId);
 
@@ -144,7 +147,12 @@ public class WorkItemServiceImpl implements WorkItemService {
         }
 
         return workItemRepository
-                .findAll(WorkItemSpecifications.forListing(projectId, statusId, assigneeId, reporterId, sprintId, typeId, priorityFilter, q), pageable)
+                .findAll(
+                        WorkItemSpecifications.forListing(
+                                projectId, statusId, assigneeId, reporterId, sprintId, typeId, parentWorkItemId, priorityFilter, q
+                        ),
+                        pageable
+                )
                 .map(this::toResponse);
     }
 
@@ -383,6 +391,16 @@ public class WorkItemServiceImpl implements WorkItemService {
                 .orElseThrow(() -> new ResourceNotFoundException("WorkItemType", typeId));
     }
 
+    private WorkItem resolveParent(UUID projectId, UUID parentWorkItemId) {
+        WorkItem parent = workItemRepository.findByIdAndDeletedAtIsNull(parentWorkItemId)
+                .filter(p -> p.getProject().getId().equals(projectId))
+                .orElseThrow(() -> new ResourceNotFoundException("WorkItem", parentWorkItemId));
+        if (parent.getParent() != null) {
+            throw new BadRequestException("Cannot create a subtask of a subtask");
+        }
+        return parent;
+    }
+
     private void notifyAssigned(WorkItem item, AppUser actor) {
         notificationRepository.save(new Notification(
                 item.getAssignee(), item, actor, NotificationType.ASSIGNED,
@@ -431,6 +449,8 @@ public class WorkItemServiceImpl implements WorkItemService {
                 item.getSprint() != null ? item.getSprint().getName() : null,
                 item.getType() != null ? item.getType().getId() : null,
                 item.getType() != null ? item.getType().getName() : null,
+                item.getParent() != null ? item.getParent().getId() : null,
+                item.getParent() != null ? item.getParent().getTitle() : null,
                 item.getTitle(),
                 item.getDescription(),
                 item.getPriority().name(),
