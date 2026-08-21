@@ -13,6 +13,9 @@ public record ProjectResponse(
         String itemDisplayNamePlural,
         String sprintLabelSingular,
         String sprintLabelPlural,
+        boolean inventoryEnabled,
+        String inventoryLabelSingular,
+        String inventoryLabelPlural,
         Instant createdAt
 ) {
 }

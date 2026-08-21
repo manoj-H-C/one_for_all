@@ -13,6 +13,12 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Pr
     List<ProjectMember> findByUserId(UUID userId);
     boolean existsByRoleId(UUID roleId);
 
+    // used by ProjectServiceImpl.listForOrg to scope "my projects" down to
+    // actual membership rather than org-wide visibility - deleted-project
+    // check folded into the query for the same reason as
+    // findByIdAndProject_DeletedAtIsNull above.
+    List<ProjectMember> findByUserIdAndProject_DeletedAtIsNull(UUID userId);
+
     // the soft-delete check folded into the query itself (rather than
     // loading the member then lazily navigating member.getProject()) so
     // ProjectAccessServiceImpl.requireMember works correctly even when the

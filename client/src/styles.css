@@ -151,6 +151,13 @@ body {
   transform: translateY(-50%) translateX(0) scale(1);
 }
 
+/* the global thin light-gray scrollbar (see the universal selector above)
+   is tuned for light backgrounds - too low-contrast against the sidebar's
+   dark gradient, so it gets its own translucent-white variant. */
+.sidebar-scroll {
+  scrollbar-color: rgb(255 255 255 / 0.18) transparent;
+}
+
 .work-item-card {
   box-shadow: var(--shadow-soft);
 }

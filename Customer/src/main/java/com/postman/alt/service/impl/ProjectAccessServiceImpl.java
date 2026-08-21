@@ -14,6 +14,7 @@ import com.postman.alt.service.ProjectAccessService;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
+import java.util.function.Predicate;
 
 @Service
 public class ProjectAccessServiceImpl implements ProjectAccessService {
@@ -53,7 +54,13 @@ public class ProjectAccessServiceImpl implements ProjectAccessService {
 
     @Override
     public void requireMemberOrOwner(UUID projectId, UUID userId) {
-        if (isOwnerOfProjectsOrg(projectId, userId)) {
+        // wider than requirePermission's bypass below - anyone allowed to
+        // create new projects can also read any existing one in their org
+        // without being individually added to it, not just the owner. This
+        // is read-only: canCreateProjects does NOT bypass requirePermission,
+        // so it doesn't grant edit/manage rights on projects they weren't
+        // actually made a member of.
+        if (isOwnerOfProjectsOrg(projectId, userId) || canCreateProjectsInOrg(projectId, userId)) {
             return;
         }
         requireMember(projectId, userId);
@@ -85,9 +92,19 @@ public class ProjectAccessServiceImpl implements ProjectAccessService {
     // case (requirePermission, transitively requireMember) still get one via
     // requireMember's own lookup once this returns false.
     private boolean isOwnerOfProjectsOrg(UUID projectId, UUID userId) {
+        return matchesProjectsOrg(projectId, userId, AppUser::isOwner);
+    }
+
+    // requireMemberOrOwner-only bypass - see the comment there for why this
+    // doesn't also apply to requirePermission.
+    private boolean canCreateProjectsInOrg(UUID projectId, UUID userId) {
+        return matchesProjectsOrg(projectId, userId, AppUser::isCanCreateProjects);
+    }
+
+    private boolean matchesProjectsOrg(UUID projectId, UUID userId, Predicate<AppUser> flag) {
         AppUser user = appUserRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("AppUser", userId));
-        if (!user.isOwner()) {
+        if (!flag.test(user)) {
             return false;
         }
         return projectRepository.findByIdAndDeletedAtIsNull(projectId)

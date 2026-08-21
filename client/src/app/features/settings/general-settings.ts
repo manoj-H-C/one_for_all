@@ -129,6 +129,56 @@ import { colorFor } from '../../shared/util/color-hash';
         </div>
       </div>
 
+      <!-- Inventory tracking -->
+      <div class="card p-5">
+        <div class="mb-4 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+              <app-icon name="building" [size]="17" />
+            </span>
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-slate-800">Inventory tracking</p>
+              <p class="truncate text-xs text-slate-500">Track material allocation and usage by location — building, floor, room, whatever fits.</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            [attr.aria-checked]="inventoryEnabled()"
+            class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50 {{
+              inventoryEnabled() ? 'bg-primary-600' : 'bg-slate-200'
+            }}"
+            [disabled]="!canManage()"
+            (click)="inventoryEnabled.set(!inventoryEnabled())"
+          >
+            <span
+              class="inline-block h-4.5 w-4.5 rounded-full bg-white shadow transition-transform duration-200"
+              [style.transform]="inventoryEnabled() ? 'translateX(22px)' : 'translateX(3px)'"
+            ></span>
+          </button>
+        </div>
+
+        @if (inventoryEnabled()) {
+          <div class="animate-fade-in border-t border-slate-100 pt-4">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label class="label">Singular</label>
+                <input type="text" class="input" placeholder="Material" [(ngModel)]="inventorySingular" [disabled]="!canManage()" />
+              </div>
+              <div>
+                <label class="label">Plural</label>
+                <input type="text" class="input" placeholder="Materials" [(ngModel)]="inventoryPlural" [disabled]="!canManage()" />
+              </div>
+            </div>
+            <div class="mt-4 flex flex-wrap items-center gap-2 rounded-xl bg-slate-50 px-3.5 py-3 text-sm">
+              <app-icon name="sparkles" [size]="15" class="shrink-0 text-primary-500" />
+              <span class="text-slate-500">Preview:</span>
+              <span class="font-medium text-slate-700">"{{ previewInventoryPlural() }}" appears in the sidebar</span>
+            </div>
+          </div>
+        }
+      </div>
+
       <!-- Danger zone -->
       @if (canManage()) {
         <div class="card border-l-4 border-l-red-400 p-5">
@@ -186,6 +236,9 @@ export class GeneralSettingsComponent implements OnInit {
   readonly plural = signal('');
   readonly sprintSingular = signal('');
   readonly sprintPlural = signal('');
+  readonly inventoryEnabled = signal(false);
+  readonly inventorySingular = signal('');
+  readonly inventoryPlural = signal('');
   readonly saving = signal(false);
 
   protected readonly colorFor = colorFor;
@@ -195,8 +248,18 @@ export class GeneralSettingsComponent implements OnInit {
   protected readonly previewPlural = computed(() => (this.plural().trim() || 'Work items').toLowerCase());
   protected readonly previewSprintSingular = computed(() => (this.sprintSingular().trim() || 'Sprint').toLowerCase());
   protected readonly previewSprintPlural = computed(() => this.sprintPlural().trim() || 'Sprints');
+  protected readonly previewInventoryPlural = computed(() => this.inventoryPlural().trim() || 'Materials');
 
-  private readonly snapshot = signal({ name: '', singular: '', plural: '', sprintSingular: '', sprintPlural: '' });
+  private readonly snapshot = signal({
+    name: '',
+    singular: '',
+    plural: '',
+    sprintSingular: '',
+    sprintPlural: '',
+    inventoryEnabled: false,
+    inventorySingular: '',
+    inventoryPlural: '',
+  });
 
   readonly dirty = computed(() => {
     const s = this.snapshot();
@@ -205,35 +268,52 @@ export class GeneralSettingsComponent implements OnInit {
       this.singular() !== s.singular ||
       this.plural() !== s.plural ||
       this.sprintSingular() !== s.sprintSingular ||
-      this.sprintPlural() !== s.sprintPlural
+      this.sprintPlural() !== s.sprintPlural ||
+      this.inventoryEnabled() !== s.inventoryEnabled ||
+      this.inventorySingular() !== s.inventorySingular ||
+      this.inventoryPlural() !== s.inventoryPlural
     );
   });
 
   ngOnInit(): void {
     const project = this.currentProjectStore.project();
     if (project) {
-      this.applySnapshot(
-        project.name,
-        project.itemDisplayNameSingular,
-        project.itemDisplayNamePlural,
-        project.sprintLabelSingular,
-        project.sprintLabelPlural,
-      );
+      this.applySnapshot({
+        name: project.name,
+        singular: project.itemDisplayNameSingular,
+        plural: project.itemDisplayNamePlural,
+        sprintSingular: project.sprintLabelSingular,
+        sprintPlural: project.sprintLabelPlural,
+        inventoryEnabled: project.inventoryEnabled,
+        inventorySingular: project.inventoryLabelSingular,
+        inventoryPlural: project.inventoryLabelPlural,
+      });
     }
   }
 
-  private applySnapshot(name: string, singular: string, plural: string, sprintSingular: string, sprintPlural: string): void {
-    this.name.set(name);
-    this.singular.set(singular);
-    this.plural.set(plural);
-    this.sprintSingular.set(sprintSingular);
-    this.sprintPlural.set(sprintPlural);
-    this.snapshot.set({ name, singular, plural, sprintSingular, sprintPlural });
+  private applySnapshot(s: {
+    name: string;
+    singular: string;
+    plural: string;
+    sprintSingular: string;
+    sprintPlural: string;
+    inventoryEnabled: boolean;
+    inventorySingular: string;
+    inventoryPlural: string;
+  }): void {
+    this.name.set(s.name);
+    this.singular.set(s.singular);
+    this.plural.set(s.plural);
+    this.sprintSingular.set(s.sprintSingular);
+    this.sprintPlural.set(s.sprintPlural);
+    this.inventoryEnabled.set(s.inventoryEnabled);
+    this.inventorySingular.set(s.inventorySingular);
+    this.inventoryPlural.set(s.inventoryPlural);
+    this.snapshot.set(s);
   }
 
   discard(): void {
-    const s = this.snapshot();
-    this.applySnapshot(s.name, s.singular, s.plural, s.sprintSingular, s.sprintPlural);
+    this.applySnapshot(this.snapshot());
   }
 
   save(): void {
@@ -246,17 +326,23 @@ export class GeneralSettingsComponent implements OnInit {
         itemDisplayNamePlural: this.plural(),
         sprintLabelSingular: this.sprintSingular(),
         sprintLabelPlural: this.sprintPlural(),
+        inventoryEnabled: this.inventoryEnabled(),
+        inventoryLabelSingular: this.inventorySingular(),
+        inventoryLabelPlural: this.inventoryPlural(),
       })
       .subscribe({
         next: (updated) => {
           this.currentProjectStore.applyUpdate(updated);
-          this.applySnapshot(
-            updated.name,
-            updated.itemDisplayNameSingular,
-            updated.itemDisplayNamePlural,
-            updated.sprintLabelSingular,
-            updated.sprintLabelPlural,
-          );
+          this.applySnapshot({
+            name: updated.name,
+            singular: updated.itemDisplayNameSingular,
+            plural: updated.itemDisplayNamePlural,
+            sprintSingular: updated.sprintLabelSingular,
+            sprintPlural: updated.sprintLabelPlural,
+            inventoryEnabled: updated.inventoryEnabled,
+            inventorySingular: updated.inventoryLabelSingular,
+            inventoryPlural: updated.inventoryLabelPlural,
+          });
           this.saving.set(false);
           this.toast.success('Project updated');
         },

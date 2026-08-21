@@ -17,6 +17,7 @@ import {
 import { AvatarComponent } from '../../shared/ui/avatar';
 import { IconComponent } from '../../shared/ui/icon';
 import { EmptyStateComponent } from '../../shared/ui/empty-state';
+import { csvEscape, downloadCsv } from '../../shared/util/csv';
 
 const BULK_CREATE_TEMPLATE_CSV =
   'name,email,can_create_projects,can_manage_members\n' +
@@ -74,20 +75,6 @@ function parseCsv(text: string): string[][] {
 function toBool(value: string | undefined): boolean {
   const v = (value ?? '').trim().toLowerCase();
   return v === 'yes' || v === 'true' || v === '1' || v === 'y';
-}
-
-function csvEscape(value: string): string {
-  return /["\n,]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
-}
-
-function downloadCsv(content: string, filename: string): void {
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
 @Component({

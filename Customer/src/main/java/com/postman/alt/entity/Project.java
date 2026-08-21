@@ -57,6 +57,17 @@ public class Project {
     @Column(name = "sprint_label_plural")
     private String sprintLabelPlural = "Sprints";
 
+    // off by default - most projects don't need location/material tracking,
+    // so it's opt-in per project rather than always showing an empty page.
+    @Column(name = "inventory_enabled", nullable = false)
+    private boolean inventoryEnabled = false;
+
+    @Column(name = "inventory_label_singular")
+    private String inventoryLabelSingular = "Material";
+
+    @Column(name = "inventory_label_plural")
+    private String inventoryLabelPlural = "Materials";
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -131,6 +142,30 @@ public class Project {
 
     public void setSprintLabelPlural(String sprintLabelPlural) {
         this.sprintLabelPlural = sprintLabelPlural;
+    }
+
+    public boolean isInventoryEnabled() {
+        return inventoryEnabled;
+    }
+
+    public void setInventoryEnabled(boolean inventoryEnabled) {
+        this.inventoryEnabled = inventoryEnabled;
+    }
+
+    public String getInventoryLabelSingular() {
+        return inventoryLabelSingular;
+    }
+
+    public void setInventoryLabelSingular(String inventoryLabelSingular) {
+        this.inventoryLabelSingular = inventoryLabelSingular;
+    }
+
+    public String getInventoryLabelPlural() {
+        return inventoryLabelPlural;
+    }
+
+    public void setInventoryLabelPlural(String inventoryLabelPlural) {
+        this.inventoryLabelPlural = inventoryLabelPlural;
     }
 
     public Instant getCreatedAt() {

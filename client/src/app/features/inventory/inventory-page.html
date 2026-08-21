@@ -1,0 +1,860 @@
+@if (loading()) {
+  <div class="flex flex-col gap-4 animate-fade-in">
+    <div class="h-10 w-64 animate-pulse rounded-xl bg-slate-200"></div>
+    <div class="h-24 animate-pulse rounded-2xl bg-slate-100"></div>
+    <div class="h-96 animate-pulse rounded-2xl bg-slate-100"></div>
+  </div>
+} @else {
+  <div class="flex flex-col gap-6 animate-fade-in">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3.5">
+        <span
+          class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white"
+          style="background: linear-gradient(135deg, #34d399, #22d3ee); box-shadow: 0 6px 16px -4px rgb(16 185 129 / 0.4)"
+        >
+          <app-icon name="building" [size]="20" />
+        </span>
+        <div>
+          <h1 class="text-[26px] font-bold tracking-tight text-slate-900">{{ currentProjectStore.inventoryLabelPlural() }}</h1>
+          <p class="mt-0.5 text-sm text-slate-500">Track allocation and usage by location.</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        class="btn-secondary shrink-0"
+        [disabled]="exporting() || totalMovementsCount() === 0"
+        (click)="exportMovementsCsv()"
+      >
+        <app-icon name="text" [size]="15" />
+        {{ exporting() ? 'Exporting…' : 'Export CSV' }}
+      </button>
+    </div>
+
+    <!-- KPI strip -->
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div class="card flex items-center gap-3 p-4">
+        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
+          <app-icon name="fields" [size]="17" />
+        </span>
+        <div class="min-w-0">
+          <p class="text-xl font-bold leading-tight text-slate-900">{{ materials().length }}</p>
+          <p class="truncate text-xs text-slate-500">{{ currentProjectStore.inventoryLabelPlural() }}</p>
+        </div>
+      </div>
+      <div class="card flex items-center gap-3 p-4">
+        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-sky-600">
+          <app-icon name="building" [size]="17" />
+        </span>
+        <div class="min-w-0">
+          <p class="text-xl font-bold leading-tight text-slate-900">{{ locations().length }}</p>
+          <p class="truncate text-xs text-slate-500">Locations</p>
+        </div>
+      </div>
+      <div class="card flex items-center gap-3 p-4">
+        <span
+          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl {{
+            lowStockMaterialCount() > 0 ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'
+          }}"
+        >
+          <app-icon name="filter" [size]="17" />
+        </span>
+        <div class="min-w-0">
+          <p class="text-xl font-bold leading-tight text-slate-900">{{ lowStockMaterialCount() }}</p>
+          <p class="truncate text-xs text-slate-500">Low stock</p>
+        </div>
+      </div>
+      <div class="card flex items-center gap-3 p-4">
+        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+          <app-icon name="text" [size]="17" />
+        </span>
+        <div class="min-w-0">
+          <p class="text-xl font-bold leading-tight text-slate-900">{{ totalMovementsCount() }}</p>
+          <p class="truncate text-xs text-slate-500">Movements logged</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <!-- Locations -->
+      <div class="card p-4 lg:col-span-1">
+        <div class="mb-3 flex items-center justify-between px-1">
+          <p class="text-sm font-semibold text-slate-700">Locations</p>
+          @if (canManage()) {
+            <button type="button" class="text-xs font-semibold text-primary-600 hover:text-primary-700" (click)="openCreateLocation(null)">
+              + Add
+            </button>
+          }
+        </div>
+
+        @if (locations().length > 5) {
+          <div class="relative mb-2">
+            <app-icon name="search" [size]="13" class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              class="input h-8 pl-7 text-xs"
+              placeholder="Search locations…"
+              [ngModel]="locationSearch()"
+              (ngModelChange)="locationSearch.set($event)"
+            />
+          </div>
+        }
+
+        <button
+          type="button"
+          class="mb-1 flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-left text-sm font-medium transition-colors {{
+            selectedLocationId() === null ? 'bg-primary-50 text-primary-700' : 'text-slate-600 hover:bg-slate-50'
+          }}"
+          (click)="selectLocation(null)"
+        >
+          <app-icon name="folder" [size]="14" class="shrink-0" />
+          All locations
+        </button>
+
+        @if (sortedLocations().length === 0) {
+          <app-empty-state icon="🏢" title="No locations yet" description="Add a building, site, or room to start tracking materials.">
+            @if (canManage()) {
+              <button type="button" class="btn-primary mt-1" (click)="openCreateLocation(null)">+ Add location</button>
+            }
+          </app-empty-state>
+        } @else if (filteredSortedLocations().length === 0) {
+          <p class="px-2.5 py-3 text-xs text-slate-400">No locations match "{{ locationSearch() }}".</p>
+        } @else {
+          <div class="flex flex-col gap-0.5">
+            @for (entry of filteredSortedLocations(); track entry.loc.id) {
+              <div
+                class="group flex items-center gap-1 rounded-lg py-1 pr-1 transition-colors {{
+                  selectedLocationId() === entry.loc.id ? 'bg-primary-50' : 'hover:bg-slate-50'
+                }}"
+                [style.padding-left.px]="8 + entry.depth * 18"
+              >
+                <button
+                  type="button"
+                  class="flex min-w-0 flex-1 items-center gap-1.5 truncate text-left text-sm {{
+                    selectedLocationId() === entry.loc.id ? 'font-semibold text-primary-700' : 'text-slate-600'
+                  }}"
+                  (click)="selectLocation(entry.loc.id)"
+                >
+                  <app-icon name="pin" [size]="13" class="shrink-0 text-slate-400" />
+                  <span class="truncate">{{ entry.loc.name }}</span>
+                </button>
+                @if (canManage()) {
+                  <div class="hidden shrink-0 items-center gap-0.5 group-hover:flex">
+                    <button
+                      type="button"
+                      class="rounded p-1 text-slate-300 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                      title="Add sub-location"
+                      (click)="openCreateLocation(entry.loc.id)"
+                    >
+                      <app-icon name="plus" [size]="12" />
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded p-1 text-slate-300 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                      title="Rename"
+                      (click)="openEditLocation(entry.loc)"
+                    >
+                      <app-icon name="edit" [size]="12" />
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded p-1 text-slate-300 transition-colors hover:bg-red-50 hover:text-red-600"
+                      title="Delete"
+                      (click)="removeLocation(entry.loc)"
+                    >
+                      <app-icon name="trash" [size]="12" />
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Content -->
+      <div class="flex flex-col gap-4 lg:col-span-2">
+        <div class="card p-1.5">
+          <div class="flex gap-1">
+            <button
+              type="button"
+              class="flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition-colors {{
+                activeTab() === 'balances' ? 'bg-primary-50 text-primary-700' : 'text-slate-500 hover:bg-slate-50'
+              }}"
+              (click)="activeTab.set('balances')"
+            >
+              Balances
+            </button>
+            <button
+              type="button"
+              class="flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition-colors {{
+                activeTab() === 'catalog' ? 'bg-primary-50 text-primary-700' : 'text-slate-500 hover:bg-slate-50'
+              }}"
+              (click)="activeTab.set('catalog')"
+            >
+              Catalog
+            </button>
+            <button
+              type="button"
+              class="relative flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition-colors {{
+                activeTab() === 'requests' ? 'bg-primary-50 text-primary-700' : 'text-slate-500 hover:bg-slate-50'
+              }}"
+              (click)="activeTab.set('requests')"
+            >
+              Requests
+              @if (pendingRequestCount() > 0) {
+                <span class="ml-1.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">{{ pendingRequestCount() }}</span>
+              }
+            </button>
+          </div>
+        </div>
+
+        @if (activeTab() === 'balances') {
+          <div class="card flex flex-wrap items-center justify-between gap-3 p-4">
+            <label class="flex items-center gap-2 text-sm font-medium text-slate-600">
+              <input type="checkbox" class="h-4 w-4 rounded border-slate-300 text-primary-600" [ngModel]="lowStockOnly()" (ngModelChange)="lowStockOnly.set($event)" />
+              Low stock only
+            </label>
+            @if (canManage()) {
+              <div class="flex shrink-0 gap-2">
+                <button
+                  type="button"
+                  class="btn-secondary"
+                  [disabled]="materials().length === 0 || locations().length < 2"
+                  title="Move stock from one location to another"
+                  (click)="openTransfer()"
+                >
+                  <app-icon name="workflow" [size]="15" />
+                  Transfer
+                </button>
+                <button
+                  type="button"
+                  class="btn-primary"
+                  [disabled]="materials().length === 0 || locations().length === 0"
+                  (click)="openLogMovement()"
+                >
+                  <app-icon name="plus" [size]="16" />
+                  Log movement
+                </button>
+              </div>
+            }
+          </div>
+
+          @if (materialTotals().length > 0) {
+            <div class="card p-5">
+              <p class="mb-4 text-sm font-semibold text-slate-700">Totals across all locations</p>
+              @if (filteredMaterialTotals().length === 0) {
+                <p class="text-xs text-slate-400">Nothing is low on stock right now.</p>
+              } @else {
+                <div class="overflow-x-auto">
+                  <table class="w-full min-w-[520px] text-sm">
+                    <thead class="border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      <tr>
+                        <th class="py-2 pr-3">Material</th>
+                        <th class="py-2 pr-3 text-right">Allocated</th>
+                        <th class="py-2 pr-3 text-right">Used</th>
+                        <th class="py-2 pr-3 text-right">Returned</th>
+                        <th class="py-2 pr-3 text-right">Remaining</th>
+                        <th class="py-2 pl-3"></th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                      @for (t of filteredMaterialTotals(); track t.materialId) {
+                        <tr>
+                          <td class="py-2.5 pr-3 font-medium text-slate-800">{{ t.materialName }}</td>
+                          <td class="py-2.5 pr-3 text-right text-slate-600">{{ t.allocated }} {{ t.unit }}</td>
+                          <td class="py-2.5 pr-3 text-right text-slate-600">{{ t.used }} {{ t.unit }}</td>
+                          <td class="py-2.5 pr-3 text-right text-slate-600">{{ t.returned }} {{ t.unit }}</td>
+                          <td class="py-2.5 pr-3 text-right font-semibold {{ isLowStockTotal(t) ? 'text-red-600' : 'text-slate-800' }}">
+                            {{ t.remaining }} {{ t.unit }}
+                            @if (isLowStockTotal(t)) {
+                              <span class="ml-1 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">LOW</span>
+                            }
+                          </td>
+                          <td class="py-2.5 pl-3 text-right">
+                            <button
+                              type="button"
+                              class="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                              title="View full history"
+                              (click)="openHistoryForTotal(t)"
+                            >
+                              <app-icon name="text" [size]="14" />
+                            </button>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </div>
+          }
+
+          <div class="card p-5">
+            <p class="mb-4 text-sm font-semibold text-slate-700">{{ selectedLocationName() ?? 'All locations' }}</p>
+
+            @if (balances().length === 0) {
+              <app-empty-state
+                icon="📦"
+                title="No movements logged yet"
+                [description]="materials().length === 0 || locations().length === 0
+                  ? 'Add a material and a location, then log an allocation to get started.'
+                  : 'Log an allocation to start tracking balances here.'"
+              />
+            } @else if (filteredBalances().length === 0) {
+              <p class="text-xs text-slate-400">Nothing here is low on stock right now.</p>
+            } @else {
+              <div class="overflow-x-auto">
+                <table class="w-full min-w-[560px] text-sm">
+                  <thead class="border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <tr>
+                      <th class="py-2 pr-3">Material</th>
+                      @if (!selectedLocationId()) {
+                        <th class="py-2 pr-3">Location</th>
+                      }
+                      <th class="py-2 pr-3 text-right">Allocated</th>
+                      <th class="py-2 pr-3 text-right">Used</th>
+                      <th class="py-2 pr-3 text-right">Returned</th>
+                      <th class="py-2 pr-3 text-right">Remaining</th>
+                      <th class="py-2 pl-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100">
+                    @for (b of filteredBalances(); track b.materialId + b.locationId) {
+                      <tr>
+                        <td class="py-2.5 pr-3 font-medium text-slate-800">{{ b.materialName }}</td>
+                        @if (!selectedLocationId()) {
+                          <td class="py-2.5 pr-3 text-slate-500">{{ b.locationName }}</td>
+                        }
+                        <td class="py-2.5 pr-3 text-right text-slate-600">{{ b.allocated }} {{ b.unit }}</td>
+                        <td class="py-2.5 pr-3 text-right text-slate-600">{{ b.used }} {{ b.unit }}</td>
+                        <td class="py-2.5 pr-3 text-right text-slate-600">{{ b.returned }} {{ b.unit }}</td>
+                        <td
+                          class="py-2.5 pr-3 text-right font-semibold {{ isLowStock(b) ? 'text-red-600' : 'text-slate-800' }}"
+                        >
+                          {{ b.remaining }} {{ b.unit }}
+                          @if (isLowStock(b)) {
+                            <span class="ml-1 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">LOW</span>
+                          }
+                        </td>
+                        <td class="py-2.5 pl-3 text-right">
+                          <button
+                            type="button"
+                            class="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                            title="View full history"
+                            (click)="openHistoryForBalance(b)"
+                          >
+                            <app-icon name="text" [size]="14" />
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+
+          @if (recentMovements().length > 0) {
+            <div class="card p-5">
+              <p class="mb-3 text-sm font-semibold text-slate-700">Recent activity</p>
+              <div class="flex flex-col divide-y divide-slate-100">
+                @for (m of recentMovements(); track m.id) {
+                  <div class="flex items-center gap-3 py-2.5">
+                    <span
+                      class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold {{
+                        m.type === 'ALLOCATED' ? 'bg-sky-100 text-sky-700' : m.type === 'USED' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'
+                      }}"
+                    >
+                      {{ m.type === 'ALLOCATED' ? '+' : m.type === 'USED' ? '−' : '↩' }}
+                    </span>
+                    <div class="min-w-0 flex-1">
+                      <p class="truncate text-sm text-slate-700">
+                        <span class="font-medium">{{ m.materialName }}</span>
+                        · {{ m.quantity }} {{ m.unit }} · {{ m.type.toLowerCase() }} at {{ m.locationName }}
+                      </p>
+                      <p class="truncate text-xs text-slate-400">
+                        {{ m.recordedByName }} · {{ m.recordedAt | date: 'medium' }}
+                        @if (m.note) { · {{ m.note }} }
+                      </p>
+                    </div>
+                    <app-avatar [name]="m.recordedByName" [size]="24" />
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        } @else if (activeTab() === 'catalog') {
+          <div class="card p-5">
+            <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <p class="text-sm font-semibold text-slate-700">
+                {{ filteredMaterials().length }}{{ materialSearch() ? ' of ' + materials().length : '' }}
+                material{{ materials().length === 1 ? '' : 's' }}
+              </p>
+              @if (canManage()) {
+                <button type="button" class="btn-primary shrink-0" (click)="openCreateMaterial()">
+                  <app-icon name="plus" [size]="16" />
+                  Add material
+                </button>
+              }
+            </div>
+
+            @if (materials().length > 5) {
+              <div class="relative mb-4">
+                <app-icon name="search" [size]="14" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  class="input pl-9"
+                  placeholder="Search materials or SKU…"
+                  [ngModel]="materialSearch()"
+                  (ngModelChange)="materialSearch.set($event)"
+                />
+              </div>
+            }
+
+            @if (materials().length === 0) {
+              <app-empty-state icon="🧱" title="No materials yet" description="Add cable, cement, fixtures — whatever your team allocates and uses.">
+                @if (canManage()) {
+                  <button type="button" class="btn-primary mt-1" (click)="openCreateMaterial()">+ Add material</button>
+                }
+              </app-empty-state>
+            } @else if (filteredMaterials().length === 0) {
+              <p class="text-xs text-slate-400">No materials match "{{ materialSearch() }}".</p>
+            } @else {
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                @for (mat of filteredMaterials(); track mat.id; let i = $index) {
+                  <div class="group relative rounded-xl border border-slate-200/80 p-3.5 transition-colors hover:border-primary-200">
+                    <div class="flex items-start justify-between gap-2">
+                      <div class="min-w-0">
+                        <p class="truncate font-semibold text-slate-800">{{ mat.name }}</p>
+                        <p class="mt-0.5 text-xs text-slate-500">
+                          Unit: {{ mat.unit }}
+                          @if (mat.sku) { · SKU {{ mat.sku }} }
+                          @if (mat.lowStockThreshold != null) { · Low stock below {{ mat.lowStockThreshold }} }
+                        </p>
+                        @if (mat.description) {
+                          <p class="mt-1.5 truncate text-xs text-slate-400">{{ mat.description }}</p>
+                        }
+                      </div>
+                      <span class="h-2.5 w-2.5 shrink-0 rounded-full {{ colorForIndex(i).dot }}"></span>
+                    </div>
+                    @if (canManage()) {
+                      <div class="mt-2.5 hidden items-center gap-1 group-hover:flex">
+                        <button type="button" class="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" (click)="openEditMaterial(mat)">
+                          <app-icon name="edit" [size]="14" />
+                        </button>
+                        <button type="button" class="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600" (click)="removeMaterial(mat)">
+                          <app-icon name="trash" [size]="14" />
+                        </button>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="card flex flex-wrap items-center justify-between gap-3 p-4">
+            <div class="flex flex-wrap items-center gap-2">
+              <select
+                class="input h-9 w-auto text-sm"
+                [ngModel]="requestStatusFilter()"
+                (ngModelChange)="requestStatusFilter.set($event); reloadRequests()"
+              >
+                <option value="ALL">All statuses</option>
+                @for (s of requestStatuses; track s) {
+                  <option [value]="s">{{ s.charAt(0) + s.slice(1).toLowerCase() }}</option>
+                }
+              </select>
+              @if (canManage()) {
+                <label class="flex items-center gap-2 text-sm font-medium text-slate-600">
+                  <input
+                    type="checkbox"
+                    class="h-4 w-4 rounded border-slate-300 text-primary-600"
+                    [ngModel]="requestMineOnly()"
+                    (ngModelChange)="requestMineOnly.set($event); reloadRequests()"
+                  />
+                  Only mine
+                </label>
+              }
+            </div>
+            <button
+              type="button"
+              class="btn-primary shrink-0"
+              [disabled]="materials().length === 0 || locations().length === 0"
+              title="{{ materials().length === 0 || locations().length === 0 ? 'Add a material and a location first' : '' }}"
+              (click)="openNewRequest()"
+            >
+              <app-icon name="plus" [size]="16" />
+              New request
+            </button>
+          </div>
+
+          <div class="card p-5">
+            @if (requestsLoading()) {
+              <div class="flex flex-col gap-2">
+                @for (n of [1, 2, 3]; track n) {
+                  <div class="h-16 animate-pulse rounded-xl bg-slate-100"></div>
+                }
+              </div>
+            } @else if (supplyRequests().length === 0) {
+              <app-empty-state
+                icon="📋"
+                title="No supply requests"
+                [description]="canManage() ? 'Nobody has asked for more stock yet.' : 'Ran low on something? Raise a request and a manager will review it.'"
+              >
+                @if (materials().length > 0 && locations().length > 0) {
+                  <button type="button" class="btn-primary mt-1" (click)="openNewRequest()">+ New request</button>
+                }
+              </app-empty-state>
+            } @else {
+              <div class="flex flex-col divide-y divide-slate-100">
+                @for (r of supplyRequests(); track r.id) {
+                  <div class="flex flex-col gap-2 py-3.5 first:pt-0 last:pb-0">
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0 flex-1">
+                        <p class="text-sm text-slate-700">
+                          <span class="font-semibold text-slate-800">{{ r.quantity }} {{ r.unit }}</span>
+                          of <span class="font-medium">{{ r.materialName }}</span> at {{ r.locationName }}
+                        </p>
+                        <p class="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-400">
+                          <app-avatar [name]="r.requestedByName" [size]="16" />
+                          {{ r.requestedByName }} · {{ r.requestedAt | date: 'medium' }}
+                        </p>
+                        @if (r.note) {
+                          <p class="mt-1 text-xs text-slate-500">"{{ r.note }}"</p>
+                        }
+                        @if (r.decisionNote || r.decidedByName) {
+                          <p class="mt-1 text-xs text-slate-400">
+                            {{ r.status === 'FULFILLED' ? 'Approved' : r.status.charAt(0) + r.status.slice(1).toLowerCase() }}
+                            by {{ r.decidedByName }}
+                            @if (r.decidedAt) { · {{ r.decidedAt | date: 'medium' }} }
+                            @if (r.decisionNote) { — "{{ r.decisionNote }}" }
+                          </p>
+                        }
+                      </div>
+                      <span
+                        class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold {{
+                          r.status === 'PENDING'
+                            ? 'bg-amber-100 text-amber-700'
+                            : r.status === 'APPROVED'
+                              ? 'bg-sky-100 text-sky-700'
+                              : r.status === 'FULFILLED'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-slate-100 text-slate-500'
+                        }}"
+                      >
+                        {{ r.status }}
+                      </span>
+                    </div>
+                    @if (canManage() && r.status === 'PENDING') {
+                      <div class="flex shrink-0 gap-2">
+                        <button
+                          type="button"
+                          class="btn-secondary h-8 px-3 text-xs"
+                          [disabled]="requestActionBusyId() === r.id"
+                          (click)="approveRequest(r)"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          class="btn-secondary h-8 px-3 text-xs text-red-600 hover:bg-red-50"
+                          [disabled]="requestActionBusyId() === r.id"
+                          (click)="openReject(r)"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    }
+                    @if (canManage() && r.status === 'APPROVED') {
+                      <div class="flex shrink-0 gap-2">
+                        <button
+                          type="button"
+                          class="btn-primary h-8 px-3 text-xs"
+                          [disabled]="requestActionBusyId() === r.id"
+                          (click)="fulfillRequest(r)"
+                        >
+                          Fulfill
+                        </button>
+                        @if (canCancelRequest(r)) {
+                          <button
+                            type="button"
+                            class="btn-secondary h-8 px-3 text-xs"
+                            [disabled]="requestActionBusyId() === r.id"
+                            (click)="cancelRequest(r)"
+                          >
+                            Cancel
+                          </button>
+                        }
+                      </div>
+                    }
+                    @if ((r.status === 'PENDING' || r.status === 'APPROVED') && canCancelRequest(r) && !canManage()) {
+                      <div class="flex shrink-0 gap-2">
+                        <button
+                          type="button"
+                          class="btn-secondary h-8 px-3 text-xs"
+                          [disabled]="requestActionBusyId() === r.id"
+                          (click)="cancelRequest(r)"
+                        >
+                          Cancel request
+                        </button>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <app-modal
+    [open]="locationModalOpen()"
+    [title]="editingLocation() ? 'Rename location' : (locationParentId() ? 'New sub-location' : 'New location')"
+    [width]="420"
+    (closed)="locationModalOpen.set(false)"
+  >
+    <div class="flex flex-col gap-4">
+      <div>
+        <label class="label" for="locationName">Name</label>
+        <input id="locationName" type="text" class="input" placeholder="Building A, Floor 3, Server Room…" [(ngModel)]="locationName" (keyup.enter)="saveLocation()" />
+      </div>
+      <div class="mt-1 flex justify-end gap-2">
+        <button type="button" class="btn-secondary" (click)="locationModalOpen.set(false)">Cancel</button>
+        <button type="button" class="btn-primary" (click)="saveLocation()">
+          {{ editingLocation() ? 'Save changes' : 'Create' }}
+        </button>
+      </div>
+    </div>
+  </app-modal>
+
+  <app-modal
+    [open]="materialModalOpen()"
+    [title]="editingMaterial() ? 'Edit material' : 'New material'"
+    [width]="480"
+    (closed)="materialModalOpen.set(false)"
+  >
+    <div class="flex flex-col gap-4">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label class="label" for="materialName">Name <span class="text-red-500">*</span></label>
+          <input id="materialName" type="text" class="input" placeholder="Cat6 cable, Cement bags…" [(ngModel)]="materialName" (keyup.enter)="saveMaterial()" />
+        </div>
+        <div>
+          <label class="label" for="materialUnit">Unit <span class="text-red-500">*</span></label>
+          <input id="materialUnit" type="text" class="input" placeholder="meters, bags, pcs…" [(ngModel)]="materialUnit" (keyup.enter)="saveMaterial()" />
+        </div>
+      </div>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label class="label" for="materialSku">SKU (optional)</label>
+          <input id="materialSku" type="text" class="input" [(ngModel)]="materialSku" />
+        </div>
+        <div>
+          <label class="label" for="materialThreshold">Low stock below (optional)</label>
+          <input id="materialThreshold" type="number" min="0" class="input" [(ngModel)]="materialThreshold" />
+        </div>
+      </div>
+      <div>
+        <label class="label" for="materialDescription">Description (optional)</label>
+        <textarea id="materialDescription" class="input resize-y" rows="2" [(ngModel)]="materialDescription"></textarea>
+      </div>
+      <div class="mt-1 flex justify-end gap-2">
+        <button type="button" class="btn-secondary" (click)="materialModalOpen.set(false)">Cancel</button>
+        <button type="button" class="btn-primary" (click)="saveMaterial()">
+          {{ editingMaterial() ? 'Save changes' : 'Create' }}
+        </button>
+      </div>
+    </div>
+  </app-modal>
+
+  <app-modal [open]="movementModalOpen()" title="Log movement" [width]="480" (closed)="movementModalOpen.set(false)">
+    <div class="flex flex-col gap-4">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label class="label" for="movementMaterial">Material</label>
+          <select id="movementMaterial" class="input" [(ngModel)]="movementMaterialId">
+            @for (mat of materials(); track mat.id) {
+              <option [value]="mat.id">{{ mat.name }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label class="label" for="movementLocation">Location</label>
+          <select id="movementLocation" class="input" [(ngModel)]="movementLocationId">
+            @for (entry of sortedLocations(); track entry.loc.id) {
+              <option [value]="entry.loc.id">{{ entry.loc.name }}</option>
+            }
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label class="label" for="movementType">Type</label>
+          <select id="movementType" class="input" [(ngModel)]="movementType">
+            @for (t of movementTypes; track t) {
+              <option [value]="t">{{ t.charAt(0) + t.slice(1).toLowerCase() }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label class="label" for="movementQuantity">Quantity</label>
+          <input id="movementQuantity" type="number" min="0" step="0.01" class="input" [(ngModel)]="movementQuantity" />
+        </div>
+      </div>
+      <div>
+        <label class="label" for="movementNote">Note (optional)</label>
+        <input id="movementNote" type="text" class="input" placeholder="Delivered to site, installed on 3rd floor…" [(ngModel)]="movementNote" />
+      </div>
+      <div class="mt-1 flex justify-end gap-2">
+        <button type="button" class="btn-secondary" (click)="movementModalOpen.set(false)">Cancel</button>
+        <button type="button" class="btn-primary" [disabled]="movementSaving()" (click)="saveMovement()">
+          {{ movementSaving() ? 'Logging…' : 'Log movement' }}
+        </button>
+      </div>
+    </div>
+  </app-modal>
+
+  <app-modal [open]="transferModalOpen()" title="Transfer stock" [width]="480" (closed)="transferModalOpen.set(false)">
+    <div class="flex flex-col gap-4">
+      <div>
+        <label class="label" for="transferMaterial">Material</label>
+        <select id="transferMaterial" class="input" [(ngModel)]="transferMaterialId">
+          @for (mat of materials(); track mat.id) {
+            <option [value]="mat.id">{{ mat.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="grid grid-cols-1 items-end gap-2 sm:grid-cols-[1fr_auto_1fr]">
+        <div>
+          <label class="label" for="transferFrom">From</label>
+          <select id="transferFrom" class="input" [(ngModel)]="transferFromLocationId">
+            @for (entry of sortedLocations(); track entry.loc.id) {
+              <option [value]="entry.loc.id">{{ entry.loc.name }}</option>
+            }
+          </select>
+        </div>
+        <app-icon name="chevron-right" [size]="16" class="mb-2.5 hidden shrink-0 text-slate-300 sm:block" />
+        <div>
+          <label class="label" for="transferTo">To</label>
+          <select id="transferTo" class="input" [(ngModel)]="transferToLocationId">
+            @for (entry of sortedLocations(); track entry.loc.id) {
+              <option [value]="entry.loc.id">{{ entry.loc.name }}</option>
+            }
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="label" for="transferQuantity">Quantity</label>
+        <input id="transferQuantity" type="number" min="0" step="0.01" class="input" [(ngModel)]="transferQuantity" />
+      </div>
+      <div>
+        <label class="label" for="transferNote">Note (optional)</label>
+        <input id="transferNote" type="text" class="input" placeholder="Reassigned to the Floor 5 crew…" [(ngModel)]="transferNote" />
+      </div>
+      <p class="text-xs text-slate-400">Logs a "used" entry at the source and an "allocated" entry at the destination, both linked in the note.</p>
+      <div class="mt-1 flex justify-end gap-2">
+        <button type="button" class="btn-secondary" (click)="transferModalOpen.set(false)">Cancel</button>
+        <button type="button" class="btn-primary" [disabled]="transferSaving()" (click)="saveTransfer()">
+          {{ transferSaving() ? 'Transferring…' : 'Transfer' }}
+        </button>
+      </div>
+    </div>
+  </app-modal>
+
+  <app-modal [open]="historyModalOpen()" [title]="historyTitle()" [width]="560" (closed)="historyModalOpen.set(false)">
+    @if (historyLoading()) {
+      <div class="flex flex-col gap-2">
+        @for (n of [1, 2, 3]; track n) {
+          <div class="h-12 animate-pulse rounded-xl bg-slate-100"></div>
+        }
+      </div>
+    } @else if (historyMovements().length === 0) {
+      <app-empty-state icon="📭" title="No movements recorded yet" />
+    } @else {
+      <div class="max-h-[60vh] overflow-y-auto">
+        <div class="flex flex-col divide-y divide-slate-100">
+          @for (m of historyMovements(); track m.id) {
+            <div class="flex items-center gap-3 py-2.5">
+              <span
+                class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold {{
+                  m.type === 'ALLOCATED' ? 'bg-sky-100 text-sky-700' : m.type === 'USED' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'
+                }}"
+              >
+                {{ m.type === 'ALLOCATED' ? '+' : m.type === 'USED' ? '−' : '↩' }}
+              </span>
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm text-slate-700">
+                  <span class="font-medium">{{ m.quantity }} {{ m.unit }}</span>
+                  {{ m.type.toLowerCase() }} · {{ m.locationName }}
+                </p>
+                <p class="truncate text-xs text-slate-400">
+                  {{ m.recordedByName }} · {{ m.recordedAt | date: 'medium' }}
+                  @if (m.note) { · {{ m.note }} }
+                </p>
+              </div>
+              <app-avatar [name]="m.recordedByName" [size]="24" />
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </app-modal>
+
+  <app-modal [open]="newRequestModalOpen()" title="Request supply" [width]="480" (closed)="newRequestModalOpen.set(false)">
+    <div class="flex flex-col gap-4">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label class="label" for="newRequestMaterial">Material</label>
+          <select id="newRequestMaterial" class="input" [(ngModel)]="newRequestMaterialId">
+            @for (mat of materials(); track mat.id) {
+              <option [value]="mat.id">{{ mat.name }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label class="label" for="newRequestLocation">Location needed at</label>
+          <select id="newRequestLocation" class="input" [(ngModel)]="newRequestLocationId">
+            @for (entry of sortedLocations(); track entry.loc.id) {
+              <option [value]="entry.loc.id">{{ entry.loc.name }}</option>
+            }
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="label" for="newRequestQuantity">Quantity</label>
+        <input id="newRequestQuantity" type="number" min="0" step="0.01" class="input" [(ngModel)]="newRequestQuantity" />
+      </div>
+      <div>
+        <label class="label" for="newRequestNote">Reason (optional)</label>
+        <input id="newRequestNote" type="text" class="input" placeholder="Running low, new crew starting Monday…" [(ngModel)]="newRequestNote" />
+      </div>
+      <div class="mt-1 flex justify-end gap-2">
+        <button type="button" class="btn-secondary" (click)="newRequestModalOpen.set(false)">Cancel</button>
+        <button type="button" class="btn-primary" [disabled]="newRequestSaving()" (click)="saveNewRequest()">
+          {{ newRequestSaving() ? 'Submitting…' : 'Submit request' }}
+        </button>
+      </div>
+    </div>
+  </app-modal>
+
+  <app-modal [open]="rejectModalOpen()" title="Reject request" [width]="420" (closed)="rejectModalOpen.set(false)">
+    <div class="flex flex-col gap-4">
+      @if (rejectingRequest(); as r) {
+        <p class="text-sm text-slate-600">
+          Reject the request for <span class="font-semibold">{{ r.quantity }} {{ r.unit }}</span> of {{ r.materialName }} at {{ r.locationName }}?
+        </p>
+      }
+      <div>
+        <label class="label" for="rejectNote">Reason (optional)</label>
+        <input id="rejectNote" type="text" class="input" placeholder="Out of budget this month, wrong location…" [(ngModel)]="rejectNote" (keyup.enter)="confirmReject()" />
+      </div>
+      <div class="mt-1 flex justify-end gap-2">
+        <button type="button" class="btn-secondary" (click)="rejectModalOpen.set(false)">Cancel</button>
+        <button type="button" class="btn-danger" (click)="confirmReject()">Reject request</button>
+      </div>
+    </div>
+  </app-modal>
+}

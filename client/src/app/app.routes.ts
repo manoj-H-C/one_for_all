@@ -24,6 +24,7 @@ import { WorkflowSettingsComponent } from './features/settings/workflow-settings
 import { SprintsSettingsComponent } from './features/settings/sprints-settings';
 import { WorkItemTypesSettingsComponent } from './features/settings/work-item-types-settings';
 import { CustomFieldsSettingsComponent } from './features/settings/custom-fields-settings';
+import { InventoryPageComponent } from './features/inventory/inventory-page';
 import { OrgAdminPageComponent } from './features/org-admin/org-admin-page';
 import { NotificationsPageComponent } from './features/notifications/notifications-page';
 
@@ -55,6 +56,7 @@ export const routes: Routes = [
           { path: '', redirectTo: 'board', pathMatch: 'full' },
           { path: 'board', component: BoardPageComponent },
           { path: 'work-items/:id', component: WorkItemDetailComponent },
+          { path: 'inventory', component: InventoryPageComponent },
           { path: 'settings', redirectTo: 'settings/general', pathMatch: 'full' },
           { path: 'settings/general', component: GeneralSettingsComponent },
           { path: 'settings/members', component: MembersSettingsComponent },

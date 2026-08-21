@@ -131,7 +131,11 @@
       } @else {
         <div class="mt-5"></div>
       }
-      <nav class="flex flex-col gap-1 px-3" [class.px-2]="sidebar.effectiveCollapsed()" [class.items-center]="sidebar.effectiveCollapsed()">
+      <nav
+        class="sidebar-scroll flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3"
+        [class.px-2]="sidebar.effectiveCollapsed()"
+        [class.items-center]="sidebar.effectiveCollapsed()"
+      >
         @for (item of projectNavItems(); track item.label) {
           <a
             [routerLink]="item.link"
@@ -139,6 +143,7 @@
             class="nav-item group"
             [class.justify-center]="sidebar.effectiveCollapsed()"
             [class.w-11]="sidebar.effectiveCollapsed()"
+            [title]="sidebar.effectiveCollapsed() ? item.label : ''"
             (click)="sidebar.closeMobile()"
           >
             <app-icon [name]="item.icon" [size]="19" />

@@ -27,6 +27,12 @@ export class CurrentProjectStore {
   readonly sprintLabelSingular = computed(() => this.project()?.sprintLabelSingular?.trim() || 'Sprint');
   readonly sprintLabelPlural = computed(() => this.project()?.sprintLabelPlural?.trim() || 'Sprints');
 
+  // opt-in per project - see Project.inventoryEnabled. Off by default, so
+  // the nav item/page only appear once a project turns it on.
+  readonly inventoryEnabled = computed(() => this.project()?.inventoryEnabled ?? false);
+  readonly inventoryLabelSingular = computed(() => this.project()?.inventoryLabelSingular?.trim() || 'Material');
+  readonly inventoryLabelPlural = computed(() => this.project()?.inventoryLabelPlural?.trim() || 'Materials');
+
   load(projectId: string): Observable<ProjectResponse> {
     return this.projectService.get(projectId).pipe(tap((project) => this.project.set(project)));
   }

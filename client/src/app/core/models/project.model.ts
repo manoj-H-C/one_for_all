@@ -8,6 +8,9 @@ export interface ProjectResponse {
   itemDisplayNamePlural: string;
   sprintLabelSingular: string;
   sprintLabelPlural: string;
+  inventoryEnabled: boolean;
+  inventoryLabelSingular: string;
+  inventoryLabelPlural: string;
   createdAt: string;
 }
 
@@ -23,4 +26,7 @@ export interface ProjectUpdateRequest {
   itemDisplayNamePlural?: string | null;
   sprintLabelSingular?: string | null;
   sprintLabelPlural?: string | null;
+  inventoryEnabled?: boolean | null;
+  inventoryLabelSingular?: string | null;
+  inventoryLabelPlural?: string | null;
 }

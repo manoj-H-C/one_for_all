@@ -105,17 +105,31 @@ public class ProjectServiceImpl implements ProjectService {
         return toResponse(project);
     }
 
+    // The org owner, and anyone allowed to create projects, sees every
+    // project in the org (same read-only bypass ProjectAccessService.
+    // requireMemberOrOwner gives them everywhere else); anyone else only
+    // sees projects they actually have a ProjectMember row in - being in the
+    // same org was never enough on its own (see get(), which enforces the
+    // same rule for a single project). @Transactional is required here (open-
+    // in-view is off) because member.getProject() below is a lazy proxy -
+    // unlike the owner branch's directly-queried Project rows, toResponse's
+    // project.getOrganization() call needs an open session to initialize it.
     @Override
+    @Transactional(readOnly = true)
     public List<ProjectResponse> listForOrg(UUID requesterId) {
         AppUser requester = getUser(requesterId);
-        return projectRepository.findByOrganizationIdAndDeletedAtIsNull(requester.getOrganization().getId())
-                .stream().map(this::toResponse).toList();
+        if (requester.isOwner() || requester.isCanCreateProjects()) {
+            return projectRepository.findByOrganizationIdAndDeletedAtIsNull(requester.getOrganization().getId())
+                    .stream().map(this::toResponse).toList();
+        }
+        return projectMemberRepository.findByUserIdAndProject_DeletedAtIsNull(requesterId)
+                .stream().map(member -> toResponse(member.getProject())).toList();
     }
 
     @Override
     public ProjectResponse get(UUID projectId, UUID requesterId) {
         Project project = getProject(projectId);
-        requireSameOrg(project, requesterId);
+        projectAccessService.requireMemberOrOwner(projectId, requesterId);
         return toResponse(project);
     }
 
@@ -140,6 +154,15 @@ public class ProjectServiceImpl implements ProjectService {
         if (request.sprintLabelPlural() != null) {
             project.setSprintLabelPlural(request.sprintLabelPlural());
         }
+        if (request.inventoryEnabled() != null) {
+            project.setInventoryEnabled(request.inventoryEnabled());
+        }
+        if (request.inventoryLabelSingular() != null) {
+            project.setInventoryLabelSingular(request.inventoryLabelSingular());
+        }
+        if (request.inventoryLabelPlural() != null) {
+            project.setInventoryLabelPlural(request.inventoryLabelPlural());
+        }
 
         return toResponse(project);
     }
@@ -150,13 +173,6 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = getProject(projectId);
         projectAccessService.requirePermission(projectId, requesterId, PROJECT_MANAGE);
         project.softDelete();
-    }
-
-    private void requireSameOrg(Project project, UUID requesterId) {
-        AppUser requester = getUser(requesterId);
-        if (!project.getOrganization().getId().equals(requester.getOrganization().getId())) {
-            throw new ForbiddenException("Project belongs to a different organization");
-        }
     }
 
     private Project getProject(UUID id) {
@@ -180,6 +196,9 @@ public class ProjectServiceImpl implements ProjectService {
                 project.getItemDisplayNamePlural(),
                 project.getSprintLabelSingular(),
                 project.getSprintLabelPlural(),
+                project.isInventoryEnabled(),
+                project.getInventoryLabelSingular(),
+                project.getInventoryLabelPlural(),
                 project.getCreatedAt()
         );
     }

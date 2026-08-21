@@ -68,7 +68,7 @@ export class AppShellComponent implements OnInit, OnDestroy {
   readonly projectNavItems = computed<NavItem[]>(() => {
     const pid = this.projectId();
     if (!pid) return [];
-    return [
+    const items: NavItem[] = [
       { icon: 'board', label: 'Board', link: ['/projects', pid, 'board'] },
       { icon: 'calendar', label: this.currentProjectStore.sprintLabelPlural(), link: ['/projects', pid, 'settings', 'sprints'] },
       { icon: 'members', label: 'Members', link: ['/projects', pid, 'settings', 'members'] },
@@ -76,8 +76,12 @@ export class AppShellComponent implements OnInit, OnDestroy {
       { icon: 'workflow', label: 'Workflow', link: ['/projects', pid, 'settings', 'workflow'] },
       { icon: 'list', label: 'Types', link: ['/projects', pid, 'settings', 'types'] },
       { icon: 'fields', label: 'Custom fields', link: ['/projects', pid, 'settings', 'custom-fields'] },
-      { icon: 'settings', label: 'Settings', link: ['/projects', pid, 'settings', 'general'] },
     ];
+    if (this.currentProjectStore.inventoryEnabled()) {
+      items.push({ icon: 'building', label: this.currentProjectStore.inventoryLabelPlural(), link: ['/projects', pid, 'inventory'] });
+    }
+    items.push({ icon: 'settings', label: 'Settings', link: ['/projects', pid, 'settings', 'general'] });
+    return items;
   });
 
   readonly workspaceNavItems = computed<NavItem[]>(() => {
