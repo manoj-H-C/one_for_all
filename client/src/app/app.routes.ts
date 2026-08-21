@@ -8,6 +8,7 @@ import { purchaseOrdersEnabledGuard } from './core/guards/purchase-orders-enable
 import { projectResolver } from './core/resolvers/project.resolver';
 import { AuthLayoutComponent } from './layout/auth-layout/auth-layout';
 import { AppShellComponent } from './layout/app-shell/app-shell';
+import { LandingPageComponent } from './features/landing/landing-page';
 import { LoginComponent } from './features/auth/login';
 import { RegisterComponent } from './features/auth/register';
 import { ForgotPasswordComponent } from './features/auth/forgot-password';
@@ -34,6 +35,12 @@ import { PurchaseOrdersPageComponent } from './features/purchase-orders/purchase
 import { NotificationsPageComponent } from './features/notifications/notifications-page';
 
 export const routes: Routes = [
+  // public marketing page - wins the bare "/" for logged-out visitors;
+  // guestGuard bounces anyone already signed in straight to /projects, same
+  // as it does for /login and /register below. Placed first so it's tried
+  // before AppShellComponent's own '' child (which would otherwise 404 into
+  // authGuard's redirect-to-login before a visitor ever saw this).
+  { path: '', component: LandingPageComponent, pathMatch: 'full', canActivate: [guestGuard] },
   {
     path: '',
     component: AuthLayoutComponent,

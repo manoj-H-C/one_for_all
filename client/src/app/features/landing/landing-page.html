@@ -1,0 +1,233 @@
+<div class="min-h-screen bg-white">
+  <!-- Nav - fixed and transparent over the aurora hero; goes solid once scrolled.
+       Fixed (not sticky) so it never depends on matching the hero's own height -
+       the hero content below just gets generous top padding to clear it. -->
+  <nav
+    class="fixed inset-x-0 top-0 z-20 transition-colors duration-300 {{ scrolled() ? 'border-b border-white/10 bg-[#0b1020]/85 backdrop-blur-md' : '' }}"
+  >
+    <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+      <app-logo />
+      <div class="hidden items-center gap-8 md:flex">
+        <a href="#teams" class="text-sm font-medium text-slate-300 transition-colors hover:text-white">Teams</a>
+        <a href="#features" class="text-sm font-medium text-slate-300 transition-colors hover:text-white">Features</a>
+        <a href="#how-it-works" class="text-sm font-medium text-slate-300 transition-colors hover:text-white">How it works</a>
+      </div>
+      <div class="flex items-center gap-2 sm:gap-3">
+        <a routerLink="/login" class="rounded-xl px-3.5 py-2 text-sm font-semibold text-slate-200 transition-colors hover:text-white sm:px-4">Log in</a>
+        <a routerLink="/register" class="btn-primary px-3.5 py-2 text-sm sm:px-4 sm:py-2.5"> Get started </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero, on the same animated aurora backdrop as the auth pages -->
+  <div class="branded-page relative overflow-hidden">
+    <div class="aurora-layer">
+      <div class="aurora-orb aurora-orb-1"></div>
+      <div class="aurora-orb aurora-orb-2"></div>
+      <div class="aurora-orb aurora-orb-3"></div>
+      <div class="aurora-orb aurora-orb-4"></div>
+      <div class="aurora-orb aurora-orb-5"></div>
+    </div>
+    <div class="particle-field">
+      @for (p of particles; track $index) {
+        <span
+          class="particle"
+          [style.left.%]="p.left"
+          [style.--size]="p.size + 'px'"
+          [style.animation-duration.s]="p.duration"
+          [style.animation-delay.s]="p.delay"
+        ></span>
+      }
+    </div>
+    <div class="pointer-events-none absolute inset-0 aurora-grid"></div>
+    <div class="pointer-events-none absolute inset-0" style="background: radial-gradient(ellipse at center, transparent 30%, #0b1020 92%)"></div>
+
+    <!-- Hero content: copy left, product preview right (stacked on mobile) -->
+    <div class="relative z-10 mx-auto grid max-w-6xl grid-cols-1 items-center gap-16 px-6 pb-20 pt-28 sm:pb-28 sm:pt-32 lg:grid-cols-[1.05fr_1fr] lg:gap-10 lg:pb-32 lg:pt-32">
+      <div class="flex flex-col items-center text-center lg:items-start lg:text-left">
+        <span
+          class="mb-6 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-medium text-slate-200 backdrop-blur-sm animate-fade-in"
+        >
+          <app-icon name="sparkles" [size]="13" class="text-primary-300" />
+          New — bulk purchase orders across every project
+        </span>
+
+        <h1 class="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl" style="animation: fade-in 0.5s ease-out">
+          Run the job site<br />
+          and the paperwork<br />
+          <span class="bg-clip-text text-transparent" style="background-image: linear-gradient(135deg, #a78bfa, #22d3ee, #34d399)">from one place.</span>
+        </h1>
+
+        <p class="mt-6 max-w-lg text-base text-slate-300 sm:text-lg">
+          Boards, sprints, and roles — plus real inventory tracking, supply requests, and purchase orders. Built for
+          teams who manage materials, not just tickets.
+        </p>
+
+        <div class="mt-9 flex flex-col items-center gap-3 sm:flex-row">
+          <a routerLink="/register" class="btn-primary px-6 py-3.5 text-base">
+            Get started free
+            <app-icon name="arrow-left" [size]="16" class="rotate-180" />
+          </a>
+          <a
+            routerLink="/login"
+            class="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-6 py-3.5 text-base font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/10"
+          >
+            Log in
+          </a>
+        </div>
+
+        <div class="mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-slate-400 lg:justify-start">
+          <span class="flex items-center gap-1.5"><app-icon name="check" [size]="13" class="text-emerald-400" />Free to start</span>
+          <span class="flex items-center gap-1.5"><app-icon name="check" [size]="13" class="text-emerald-400" />No credit card</span>
+          <span class="flex items-center gap-1.5"><app-icon name="check" [size]="13" class="text-emerald-400" />Live in minutes</span>
+        </div>
+      </div>
+
+      <!-- Product preview: a stylized, wireframe mockup of the board + a low-stock request card -->
+      <div class="relative mx-auto w-full max-w-md animate-fade-in lg:max-w-none" style="animation-delay: 0.1s">
+        <div
+          class="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.07] shadow-2xl backdrop-blur-xl"
+          style="transform: rotate(-1.2deg); box-shadow: 0 25px 60px -15px rgb(0 0 0 / 0.5)"
+        >
+          <div class="flex items-center gap-1.5 px-4 pb-3 pt-4 sm:px-5">
+            <span class="h-2.5 w-2.5 rounded-full bg-red-400/70"></span>
+            <span class="h-2.5 w-2.5 rounded-full bg-amber-400/70"></span>
+            <span class="h-2.5 w-2.5 rounded-full bg-emerald-400/70"></span>
+            <span class="ml-2 truncate rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-slate-300">Substation Rewire · Board</span>
+          </div>
+
+          <!-- a real screenshot of the actual board (not a mockup) -->
+          <img src="/screenshots/board.jpg" alt="A Raidzo project board with work items in To Do, In Progress, and Done" class="block h-auto w-full" width="1568" height="652" />
+        </div>
+
+        <!-- floating low-stock request card - reflects the real data behind the inventory screenshot below -->
+        <div
+          class="absolute -bottom-7 -left-3 w-44 rounded-xl border border-slate-100 bg-white p-3 shadow-2xl sm:-left-8 sm:w-48"
+          style="transform: rotate(2.5deg)"
+        >
+          <span class="rounded-full bg-red-100 px-1.5 py-0.5 text-[9px] font-bold tracking-wide text-red-600">LOW STOCK</span>
+          <p class="mt-1.5 text-xs font-semibold text-slate-800">Cat6 Cable</p>
+          <p class="text-[11px] text-slate-400">12 m remaining · Substation 3</p>
+          <div class="mt-2 flex items-center justify-center gap-1 rounded-lg bg-primary-600 py-1.5 text-[11px] font-semibold text-white">
+            <app-icon name="plus" [size]="11" />
+            Request more
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Who it's for -->
+  <div id="teams" class="scroll-mt-20 border-b border-slate-100 bg-slate-50/60 px-6 py-16 sm:py-20">
+    <div class="mx-auto max-w-6xl">
+      <div class="mx-auto max-w-2xl text-center">
+        <h2 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">One tool, every team</h2>
+        <p class="mt-3 text-base text-slate-500">The same flexible boards, roles, and workflows underneath — shaped for how each team actually works.</p>
+      </div>
+
+      <div class="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        @for (t of teams; track t.name) {
+          <div class="rounded-2xl {{ t.bg }} p-5 transition-transform duration-200 hover:-translate-y-0.5">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm {{ t.text }}">
+              <app-icon [name]="t.icon" [size]="18" />
+            </span>
+            <p class="mt-3.5 text-sm font-semibold text-slate-800">{{ t.name }}</p>
+            <p class="mt-1 text-xs leading-relaxed text-slate-500">{{ t.description }}</p>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature grid -->
+  <div id="features" class="mx-auto max-w-6xl scroll-mt-20 px-6 py-20 sm:py-28">
+    <div class="mx-auto max-w-2xl text-center">
+      <h2 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Everything your team needs, in one place</h2>
+      <p class="mt-3 text-base text-slate-500">
+        Most tools stop at tickets. Raidzo goes further <em class="not-italic font-medium text-slate-700">when you need it to</em> — down to the materials behind the work.
+      </p>
+    </div>
+
+    <div class="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      @for (f of features; track f.title) {
+        <div class="card-hover p-6">
+          <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl {{ f.bg }} {{ f.text }}">
+            <app-icon [name]="f.icon" [size]="19" />
+          </span>
+          <p class="mt-4 text-base font-semibold text-slate-800">{{ f.title }}</p>
+          <p class="mt-1.5 text-sm leading-relaxed text-slate-500">{{ f.description }}</p>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Materials flow showcase -->
+  <div id="how-it-works" class="relative scroll-mt-20 overflow-hidden py-20 sm:py-28" style="background: linear-gradient(180deg, #0b1020, #0d1226 60%, #0b1020)">
+    <div class="pointer-events-none absolute inset-0 aurora-grid opacity-60"></div>
+    <div class="relative mx-auto max-w-5xl px-6">
+      <div class="mx-auto max-w-2xl text-center">
+        <h2 class="text-3xl font-bold tracking-tight text-white sm:text-4xl">From "we're running low" to a bulk order — in three steps</h2>
+        <p class="mt-3 text-base text-slate-400">No spreadsheets, no side-channel messages, no forgotten requests.</p>
+      </div>
+
+      <div class="mt-14 grid grid-cols-1 gap-8 sm:grid-cols-3">
+        <div class="relative flex flex-col items-center text-center">
+          <span class="flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-bold text-white" style="background: linear-gradient(135deg, #f472b6, #a78bfa)">1</span>
+          <p class="mt-4 text-base font-semibold text-white">Anyone raises a request</p>
+          <p class="mt-1.5 text-sm text-slate-400">A crew member flags what's short — material, quantity, and where it's needed.</p>
+          <app-icon name="arrow-left" [size]="18" class="absolute -right-4 top-5 hidden rotate-180 text-slate-600 sm:block" />
+        </div>
+        <div class="relative flex flex-col items-center text-center">
+          <span class="flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-bold text-white" style="background: linear-gradient(135deg, #22d3ee, #34d399)">2</span>
+          <p class="mt-4 text-base font-semibold text-white">A manager approves</p>
+          <p class="mt-1.5 text-sm text-slate-400">One click approves, rejects, or fulfills it directly — the requester gets notified either way.</p>
+          <app-icon name="arrow-left" [size]="18" class="absolute -right-4 top-5 hidden rotate-180 text-slate-600 sm:block" />
+        </div>
+        <div class="flex flex-col items-center text-center">
+          <span class="flex h-12 w-12 items-center justify-center rounded-2xl text-lg font-bold text-white" style="background: linear-gradient(135deg, #f59e0b, #f97316)">3</span>
+          <p class="mt-4 text-base font-semibold text-white">Bundle it into one order</p>
+          <p class="mt-1.5 text-sm text-slate-400">Combine approved requests from every project into a single bulk order per vendor.</p>
+        </div>
+      </div>
+
+      <!-- a real screenshot of the actual materials view, framed like the hero's board card -->
+      <div class="relative mx-auto mt-16 max-w-3xl overflow-hidden rounded-2xl border border-white/10 bg-white/[0.07] shadow-2xl backdrop-blur-xl">
+        <div class="flex items-center gap-1.5 px-4 pb-3 pt-4 sm:px-5">
+          <span class="h-2.5 w-2.5 rounded-full bg-red-400/70"></span>
+          <span class="h-2.5 w-2.5 rounded-full bg-amber-400/70"></span>
+          <span class="h-2.5 w-2.5 rounded-full bg-emerald-400/70"></span>
+          <span class="ml-2 truncate rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-slate-300">Substation Rewire · Materials</span>
+        </div>
+        <img
+          src="/screenshots/inventory.jpg"
+          alt="Raidzo's materials view showing balances by location, with a low-stock alert on Cat6 Cable"
+          class="block h-auto w-full"
+          width="1568"
+          height="652"
+        />
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA banner -->
+  <div class="mx-auto max-w-4xl px-6 py-20 text-center sm:py-28">
+    <h2 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Ready to get your team organized?</h2>
+    <p class="mt-3 text-base text-slate-500">Set up your workspace in minutes — whatever your team does, however it works.</p>
+    <div class="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+      <a routerLink="/register" class="btn-primary px-6 py-3.5 text-base">Create your workspace</a>
+      <a routerLink="/login" class="btn-secondary px-6 py-3.5 text-base">I already have an account</a>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-100 px-6 py-8">
+    <div class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 text-sm text-slate-400 sm:flex-row">
+      <app-logo size="sm" theme="light" />
+      <p>© {{ currentYear }} Raidzo. All rights reserved.</p>
+      <div class="flex items-center gap-4">
+        <a routerLink="/login" class="transition-colors hover:text-slate-700">Log in</a>
+        <a routerLink="/register" class="transition-colors hover:text-slate-700">Get started</a>
+      </div>
+    </div>
+  </footer>
+</div>

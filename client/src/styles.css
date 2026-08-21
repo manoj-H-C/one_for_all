@@ -36,6 +36,18 @@ html, body {
   height: 100%;
 }
 
+/* smooth in-page jumps for anchor links (e.g. the landing page's nav ->
+   #features/#how-it-works) - reduced-motion users get an instant jump
+   instead, same as every other animation in this file. */
+html {
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 body {
   background-color: #f7f7fb;
   color: var(--color-ink-900);
