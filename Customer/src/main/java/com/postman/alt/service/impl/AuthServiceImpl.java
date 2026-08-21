@@ -289,6 +289,7 @@ public class AuthServiceImpl implements AuthService {
                 user.getId(),
                 user.getOrganization().getId(),
                 user.getOrganization().getName(),
+                user.getOrganization().isPurchaseOrdersEnabled(),
                 user.getEmail(),
                 user.getName(),
                 user.isOwner(),

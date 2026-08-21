@@ -21,6 +21,7 @@ export class AuthStore {
   readonly currentUser = this.currentUserSig.asReadonly();
   readonly isAuthenticated = computed(() => this.accessTokenSig() !== null);
   readonly isOwner = computed(() => this.currentUserSig()?.owner ?? false);
+  readonly purchaseOrdersEnabled = computed(() => this.currentUserSig()?.purchaseOrdersEnabled ?? false);
   readonly canManageMembers = computed(
     () => this.currentUserSig()?.owner === true || this.currentUserSig()?.canManageMembers === true,
   );

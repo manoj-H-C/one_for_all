@@ -11,6 +11,7 @@ export interface UserResponse {
   id: string;
   orgId: string;
   orgName: string;
+  purchaseOrdersEnabled: boolean;
   email: string;
   name: string;
   owner: boolean;

@@ -9,10 +9,12 @@ import java.util.UUID;
 
 /**
  * Org-level bulk buying: bundles approved SupplyRequests from any of the
- * org's projects into one order placed with a vendor. Every method is
- * gated the same way the rest of org administration is (org owner or
- * canManageMembers - see OrganizationServiceImpl.requireAdmin), since
- * there's no per-project role to check at this level.
+ * org's projects into one order placed with a vendor. Every method requires
+ * the org owner or canCreateProjects (see PurchaseOrderServiceImpl.
+ * requireAdmin) - deliberately not canManageMembers, since this isn't a
+ * member-administration feature - and the org must have purchase orders
+ * turned on (Organization.purchaseOrdersEnabled), which a disabled org
+ * blocks for everyone regardless of permission.
  */
 public interface PurchaseOrderService {
 

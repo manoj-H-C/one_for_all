@@ -7,6 +7,7 @@ public record UserResponse(
         UUID id,
         UUID orgId,
         String orgName,
+        boolean purchaseOrdersEnabled,
         String email,
         String name,
         boolean owner,

@@ -2,6 +2,9 @@ import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
 import { orgAdminGuard } from './core/guards/org-admin.guard';
+import { ownerGuard } from './core/guards/owner.guard';
+import { purchaseOrdersAccessGuard } from './core/guards/purchase-orders-access.guard';
+import { purchaseOrdersEnabledGuard } from './core/guards/purchase-orders-enabled.guard';
 import { projectResolver } from './core/resolvers/project.resolver';
 import { AuthLayoutComponent } from './layout/auth-layout/auth-layout';
 import { AppShellComponent } from './layout/app-shell/app-shell';
@@ -26,6 +29,7 @@ import { WorkItemTypesSettingsComponent } from './features/settings/work-item-ty
 import { CustomFieldsSettingsComponent } from './features/settings/custom-fields-settings';
 import { InventoryPageComponent } from './features/inventory/inventory-page';
 import { OrgAdminPageComponent } from './features/org-admin/org-admin-page';
+import { OrgSettingsPageComponent } from './features/org-settings/org-settings-page';
 import { PurchaseOrdersPageComponent } from './features/purchase-orders/purchase-orders-page';
 import { NotificationsPageComponent } from './features/notifications/notifications-page';
 
@@ -70,7 +74,8 @@ export const routes: Routes = [
       },
       { path: 'work-items/:id', component: WorkItemRedirectComponent },
       { path: 'org', component: OrgAdminPageComponent, canActivate: [orgAdminGuard] },
-      { path: 'purchase-orders', component: PurchaseOrdersPageComponent, canActivate: [orgAdminGuard] },
+      { path: 'org/settings', component: OrgSettingsPageComponent, canActivate: [ownerGuard] },
+      { path: 'purchase-orders', component: PurchaseOrdersPageComponent, canActivate: [purchaseOrdersAccessGuard, purchaseOrdersEnabledGuard] },
       { path: 'notifications', component: NotificationsPageComponent },
       { path: '', redirectTo: 'projects', pathMatch: 'full' },
     ],

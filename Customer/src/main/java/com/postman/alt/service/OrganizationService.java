@@ -9,11 +9,21 @@ import com.postman.alt.service.dto.OrganizationMemberBulkCreateResult;
 import com.postman.alt.service.dto.OrganizationMemberCreateRequest;
 import com.postman.alt.service.dto.OrganizationMemberCreateResponse;
 import com.postman.alt.service.dto.OrganizationMemberResponse;
+import com.postman.alt.service.dto.OrganizationSettingsResponse;
+import com.postman.alt.service.dto.OrganizationSettingsUpdateRequest;
 
 import java.util.List;
 import java.util.UUID;
 
 public interface OrganizationService {
+
+    // owner-only, unlike requireAdmin's owner-or-canManageMembers bar - the
+    // org's name and which optional org-wide features (purchase orders) are
+    // turned on are structural settings, same trust tier as deleting a
+    // project rather than day-to-day member administration.
+    OrganizationSettingsResponse getSettings(UUID requesterId);
+
+    OrganizationSettingsResponse updateSettings(UUID requesterId, OrganizationSettingsUpdateRequest request);
 
     void setProjectCreationAccess(UUID targetUserId, UUID requesterId, boolean canCreateProjects);
 

@@ -173,7 +173,19 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private AppUser requireAdmin(UUID requesterId) {
         AppUser requester = appUserRepository.findById(requesterId)
                 .orElseThrow(() -> new ResourceNotFoundException("AppUser", requesterId));
-        if (!requester.isOwner() && !requester.isCanManageMembers()) {
+        // a disabled feature is unreachable by anyone, including the owner -
+        // same "off is off for everyone" rule InventoryServiceImpl.
+        // getEnabledProject enforces for project-level inventory. Checked
+        // before the permission bar below so a non-admin gets the same
+        // "not enabled" message an admin would, rather than leaking whether
+        // they'd otherwise have access.
+        if (!requester.getOrganization().isPurchaseOrdersEnabled()) {
+            throw new ForbiddenException("Purchase orders are not enabled for this organization");
+        }
+        // owner or canCreateProjects - deliberately not canManageMembers,
+        // since bulk-purchasing sits closer to "can spin up new project
+        // work" than "administers people".
+        if (!requester.isOwner() && !requester.isCanCreateProjects()) {
             throw new ForbiddenException("You don't have permission to manage purchase orders for this organization");
         }
         return requester;

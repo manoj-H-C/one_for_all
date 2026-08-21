@@ -21,6 +21,9 @@ public class Organization {
     @Column(nullable = false)
     private String name;
 
+    @Column(name = "purchase_orders_enabled", nullable = false)
+    private boolean purchaseOrdersEnabled = false;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -42,6 +45,14 @@ public class Organization {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public boolean isPurchaseOrdersEnabled() {
+        return purchaseOrdersEnabled;
+    }
+
+    public void setPurchaseOrdersEnabled(boolean purchaseOrdersEnabled) {
+        this.purchaseOrdersEnabled = purchaseOrdersEnabled;
     }
 
     public Instant getCreatedAt() {

@@ -14,6 +14,8 @@ import com.postman.alt.service.dto.OrganizationMemberBulkCreateResult;
 import com.postman.alt.service.dto.OrganizationMemberCreateRequest;
 import com.postman.alt.service.dto.OrganizationMemberCreateResponse;
 import com.postman.alt.service.dto.OrganizationMemberResponse;
+import com.postman.alt.service.dto.OrganizationSettingsResponse;
+import com.postman.alt.service.dto.OrganizationSettingsUpdateRequest;
 import com.postman.alt.service.dto.UpdateMemberManagementAccessRequest;
 import com.postman.alt.service.dto.UpdateProjectCreationAccessRequest;
 import jakarta.validation.Valid;
@@ -41,6 +43,16 @@ public class OrganizationController {
     public OrganizationController(OrganizationService organizationService, AuthService authService) {
         this.organizationService = organizationService;
         this.authService = authService;
+    }
+
+    @GetMapping("/api/organizations/settings")
+    public OrganizationSettingsResponse getSettings() {
+        return organizationService.getSettings(CurrentUser.id());
+    }
+
+    @PatchMapping("/api/organizations/settings")
+    public OrganizationSettingsResponse updateSettings(@RequestBody OrganizationSettingsUpdateRequest request) {
+        return organizationService.updateSettings(CurrentUser.id(), request);
     }
 
     @GetMapping("/api/organizations/members")

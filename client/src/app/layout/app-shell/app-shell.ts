@@ -90,8 +90,16 @@ export class AppShellComponent implements OnInit, OnDestroy {
       { icon: 'bell', label: 'Notifications', link: ['/notifications'] },
     ];
     if (this.authStore.isOwner() || this.authStore.canManageMembers()) {
-      items.push({ icon: 'building', label: 'User Management', link: ['/org'] });
+      items.push({ icon: 'building', label: 'User Management', link: ['/org'], exact: true });
+    }
+    // owner or canCreateProjects - deliberately not tied to canManageMembers
+    // like User Management above, since bulk-purchasing sits closer to
+    // "can spin up new project work" than "administers people".
+    if (this.authStore.canCreateProjects() && this.authStore.purchaseOrdersEnabled()) {
       items.push({ icon: 'workflow', label: 'Purchase Orders', link: ['/purchase-orders'] });
+    }
+    if (this.authStore.isOwner()) {
+      items.push({ icon: 'settings', label: 'Organization Settings', link: ['/org/settings'] });
     }
     return items;
   });

@@ -1,6 +1,7 @@
 package com.postman.alt.service.impl;
 
 import com.postman.alt.entity.AppUser;
+import com.postman.alt.entity.Organization;
 import com.postman.alt.entity.OrganizationInvitation;
 import com.postman.alt.enums.InvitationStatus;
 import com.postman.alt.exception.BadRequestException;
@@ -24,6 +25,8 @@ import com.postman.alt.service.dto.OrganizationMemberBulkCreateRow;
 import com.postman.alt.service.dto.OrganizationMemberCreateRequest;
 import com.postman.alt.service.dto.OrganizationMemberCreateResponse;
 import com.postman.alt.service.dto.OrganizationMemberResponse;
+import com.postman.alt.service.dto.OrganizationSettingsResponse;
+import com.postman.alt.service.dto.OrganizationSettingsUpdateRequest;
 import com.postman.alt.service.support.TokenGenerator;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
@@ -70,6 +73,47 @@ public class OrganizationServiceImpl implements OrganizationService {
         this.projectMemberRepository = projectMemberRepository;
         this.passwordEncoder = passwordEncoder;
         this.validator = validator;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OrganizationSettingsResponse getSettings(UUID requesterId) {
+        Organization organization = requireOwner(requesterId).getOrganization();
+        return toSettingsResponse(organization);
+    }
+
+    @Override
+    @Transactional
+    public OrganizationSettingsResponse updateSettings(UUID requesterId, OrganizationSettingsUpdateRequest request) {
+        Organization organization = requireOwner(requesterId).getOrganization();
+
+        if (request.name() != null) {
+            String name = request.name().trim();
+            if (name.isBlank()) {
+                throw new BadRequestException("Organization name can't be empty");
+            }
+            organization.setName(name);
+        }
+        if (request.purchaseOrdersEnabled() != null) {
+            organization.setPurchaseOrdersEnabled(request.purchaseOrdersEnabled());
+        }
+
+        return toSettingsResponse(organization);
+    }
+
+    // stricter than requireAdmin - the org's name and its optional features
+    // are structural, not day-to-day member administration, so
+    // canManageMembers doesn't reach this (see the interface javadoc).
+    private AppUser requireOwner(UUID requesterId) {
+        AppUser requester = getUser(requesterId);
+        if (!requester.isOwner()) {
+            throw new ForbiddenException("Only the organization owner can change organization settings");
+        }
+        return requester;
+    }
+
+    private OrganizationSettingsResponse toSettingsResponse(Organization organization) {
+        return new OrganizationSettingsResponse(organization.getId(), organization.getName(), organization.isPurchaseOrdersEnabled());
     }
 
     @Override
