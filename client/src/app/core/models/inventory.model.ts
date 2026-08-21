@@ -90,12 +90,13 @@ export interface InventoryBalanceResponse {
   remaining: number;
 }
 
-export const SUPPLY_REQUEST_STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'FULFILLED', 'CANCELLED'] as const;
+export const SUPPLY_REQUEST_STATUSES = ['PENDING', 'APPROVED', 'ORDERED', 'REJECTED', 'FULFILLED', 'CANCELLED'] as const;
 export type SupplyRequestStatus = (typeof SUPPLY_REQUEST_STATUSES)[number];
 
 export interface SupplyRequestResponse {
   id: string;
   projectId: string;
+  projectName: string;
   materialId: string;
   materialName: string;
   unit: string;

@@ -50,7 +50,13 @@
           <p class="truncate text-xs text-slate-500">Locations</p>
         </div>
       </div>
-      <div class="card flex items-center gap-3 p-4">
+      <button
+        type="button"
+        class="card flex w-full items-center gap-3 p-4 text-left transition-transform hover:-translate-y-0.5"
+        [disabled]="lowStockMaterialCount() === 0"
+        title="{{ lowStockMaterialCount() > 0 ? 'Jump to what needs restocking' : '' }}"
+        (click)="activeTab.set('balances'); lowStockOnly.set(true)"
+      >
         <span
           class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl {{
             lowStockMaterialCount() > 0 ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'
@@ -62,7 +68,7 @@
           <p class="text-xl font-bold leading-tight text-slate-900">{{ lowStockMaterialCount() }}</p>
           <p class="truncate text-xs text-slate-500">Low stock</p>
         </div>
-      </div>
+      </button>
       <div class="card flex items-center gap-3 p-4">
         <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
           <app-icon name="text" [size]="17" />
@@ -271,14 +277,29 @@
                             }
                           </td>
                           <td class="py-2.5 pl-3 text-right">
-                            <button
-                              type="button"
-                              class="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-                              title="View full history"
-                              (click)="openHistoryForTotal(t)"
-                            >
-                              <app-icon name="text" [size]="14" />
-                            </button>
+                            <div class="flex items-center justify-end gap-1">
+                              @if (isLowStockTotal(t)) {
+                                @if (hasOpenRequestFor(t.materialId)) {
+                                  <span class="text-xs font-medium text-slate-400">Requested</span>
+                                } @else {
+                                  <button
+                                    type="button"
+                                    class="rounded-lg px-2 py-1 text-xs font-semibold text-primary-600 transition-colors hover:bg-primary-50"
+                                    (click)="openNewRequest(t.materialId)"
+                                  >
+                                    Request
+                                  </button>
+                                }
+                              }
+                              <button
+                                type="button"
+                                class="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                                title="View full history"
+                                (click)="openHistoryForTotal(t)"
+                              >
+                                <app-icon name="text" [size]="14" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       }
@@ -337,14 +358,29 @@
                           }
                         </td>
                         <td class="py-2.5 pl-3 text-right">
-                          <button
-                            type="button"
-                            class="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-                            title="View full history"
-                            (click)="openHistoryForBalance(b)"
-                          >
-                            <app-icon name="text" [size]="14" />
-                          </button>
+                          <div class="flex items-center justify-end gap-1">
+                            @if (isLowStock(b)) {
+                              @if (hasOpenRequestFor(b.materialId, b.locationId)) {
+                                <span class="text-xs font-medium text-slate-400">Requested</span>
+                              } @else {
+                                <button
+                                  type="button"
+                                  class="rounded-lg px-2 py-1 text-xs font-semibold text-primary-600 transition-colors hover:bg-primary-50"
+                                  (click)="openNewRequest(b.materialId, b.locationId)"
+                                >
+                                  Request
+                                </button>
+                              }
+                            }
+                            <button
+                              type="button"
+                              class="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                              title="View full history"
+                              (click)="openHistoryForBalance(b)"
+                            >
+                              <app-icon name="text" [size]="14" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     }
@@ -437,16 +473,28 @@
                       </div>
                       <span class="h-2.5 w-2.5 shrink-0 rounded-full {{ colorForIndex(i).dot }}"></span>
                     </div>
-                    @if (canManage()) {
-                      <div class="mt-2.5 hidden items-center gap-1 group-hover:flex">
-                        <button type="button" class="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" (click)="openEditMaterial(mat)">
+                    <div class="mt-2.5 hidden items-center gap-1 group-hover:flex">
+                      @if (hasOpenRequestFor(mat.id)) {
+                        <span class="rounded-lg px-2 py-1 text-xs font-medium text-slate-400">Already requested</span>
+                      } @else {
+                        <button
+                          type="button"
+                          class="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-primary-600 transition-colors hover:bg-primary-50"
+                          (click)="openNewRequest(mat.id)"
+                        >
+                          <app-icon name="plus" [size]="12" />
+                          Request
+                        </button>
+                      }
+                      @if (canManage()) {
+                        <button type="button" class="ml-auto rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" (click)="openEditMaterial(mat)">
                           <app-icon name="edit" [size]="14" />
                         </button>
                         <button type="button" class="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600" (click)="removeMaterial(mat)">
                           <app-icon name="trash" [size]="14" />
                         </button>
-                      </div>
-                    }
+                      }
+                    </div>
                   </div>
                 }
               </div>
@@ -455,23 +503,42 @@
         } @else {
           <div class="card flex flex-wrap items-center justify-between gap-3 p-4">
             <div class="flex flex-wrap items-center gap-2">
-              <select
-                class="input h-9 w-auto text-sm"
-                [ngModel]="requestStatusFilter()"
-                (ngModelChange)="requestStatusFilter.set($event); reloadRequests()"
+              <button
+                type="button"
+                class="rounded-full px-3 py-1.5 text-xs font-semibold transition-colors {{
+                  requestStatusFilter() === 'OPEN' ? 'bg-primary-50 text-primary-700' : 'text-slate-500 hover:bg-slate-50'
+                }}"
+                (click)="requestStatusFilter.set('OPEN')"
               >
-                <option value="ALL">All statuses</option>
-                @for (s of requestStatuses; track s) {
-                  <option [value]="s">{{ s.charAt(0) + s.slice(1).toLowerCase() }}</option>
-                }
-              </select>
+                Open
+              </button>
+              <button
+                type="button"
+                class="rounded-full px-3 py-1.5 text-xs font-semibold transition-colors {{
+                  requestStatusFilter() === 'ALL' ? 'bg-primary-50 text-primary-700' : 'text-slate-500 hover:bg-slate-50'
+                }}"
+                (click)="requestStatusFilter.set('ALL')"
+              >
+                All
+              </button>
+              @for (s of requestStatuses; track s) {
+                <button
+                  type="button"
+                  class="rounded-full px-3 py-1.5 text-xs font-semibold transition-colors {{
+                    requestStatusFilter() === s ? 'bg-primary-50 text-primary-700' : 'text-slate-500 hover:bg-slate-50'
+                  }}"
+                  (click)="requestStatusFilter.set(s)"
+                >
+                  {{ s.charAt(0) + s.slice(1).toLowerCase() }}
+                </button>
+              }
               @if (canManage()) {
-                <label class="flex items-center gap-2 text-sm font-medium text-slate-600">
+                <label class="ml-1 flex items-center gap-2 text-sm font-medium text-slate-600">
                   <input
                     type="checkbox"
                     class="h-4 w-4 rounded border-slate-300 text-primary-600"
                     [ngModel]="requestMineOnly()"
-                    (ngModelChange)="requestMineOnly.set($event); reloadRequests()"
+                    (ngModelChange)="requestMineOnly.set($event)"
                   />
                   Only mine
                 </label>
@@ -490,13 +557,7 @@
           </div>
 
           <div class="card p-5">
-            @if (requestsLoading()) {
-              <div class="flex flex-col gap-2">
-                @for (n of [1, 2, 3]; track n) {
-                  <div class="h-16 animate-pulse rounded-xl bg-slate-100"></div>
-                }
-              </div>
-            } @else if (supplyRequests().length === 0) {
+            @if (supplyRequests().length === 0) {
               <app-empty-state
                 icon="📋"
                 title="No supply requests"
@@ -506,9 +567,11 @@
                   <button type="button" class="btn-primary mt-1" (click)="openNewRequest()">+ New request</button>
                 }
               </app-empty-state>
+            } @else if (filteredSupplyRequests().length === 0) {
+              <p class="text-xs text-slate-400">No requests match this filter.</p>
             } @else {
               <div class="flex flex-col divide-y divide-slate-100">
-                @for (r of supplyRequests(); track r.id) {
+                @for (r of filteredSupplyRequests(); track r.id) {
                   <div class="flex flex-col gap-2 py-3.5 first:pt-0 last:pb-0">
                     <div class="flex items-start justify-between gap-3">
                       <div class="min-w-0 flex-1">
@@ -525,11 +588,14 @@
                         }
                         @if (r.decisionNote || r.decidedByName) {
                           <p class="mt-1 text-xs text-slate-400">
-                            {{ r.status === 'FULFILLED' ? 'Approved' : r.status.charAt(0) + r.status.slice(1).toLowerCase() }}
+                            {{ r.status === 'FULFILLED' || r.status === 'ORDERED' ? 'Approved' : r.status.charAt(0) + r.status.slice(1).toLowerCase() }}
                             by {{ r.decidedByName }}
                             @if (r.decidedAt) { · {{ r.decidedAt | date: 'medium' }} }
                             @if (r.decisionNote) { — "{{ r.decisionNote }}" }
                           </p>
+                        }
+                        @if (r.status === 'ORDERED') {
+                          <p class="mt-1 text-xs text-indigo-500">Bundled into a purchase order, awaiting delivery.</p>
                         }
                       </div>
                       <span
@@ -538,9 +604,11 @@
                             ? 'bg-amber-100 text-amber-700'
                             : r.status === 'APPROVED'
                               ? 'bg-sky-100 text-sky-700'
-                              : r.status === 'FULFILLED'
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : 'bg-slate-100 text-slate-500'
+                              : r.status === 'ORDERED'
+                                ? 'bg-indigo-100 text-indigo-700'
+                                : r.status === 'FULFILLED'
+                                  ? 'bg-emerald-100 text-emerald-700'
+                                  : 'bg-slate-100 text-slate-500'
                         }}"
                       >
                         {{ r.status }}

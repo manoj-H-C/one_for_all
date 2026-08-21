@@ -26,6 +26,7 @@ import { WorkItemTypesSettingsComponent } from './features/settings/work-item-ty
 import { CustomFieldsSettingsComponent } from './features/settings/custom-fields-settings';
 import { InventoryPageComponent } from './features/inventory/inventory-page';
 import { OrgAdminPageComponent } from './features/org-admin/org-admin-page';
+import { PurchaseOrdersPageComponent } from './features/purchase-orders/purchase-orders-page';
 import { NotificationsPageComponent } from './features/notifications/notifications-page';
 
 export const routes: Routes = [
@@ -69,6 +70,7 @@ export const routes: Routes = [
       },
       { path: 'work-items/:id', component: WorkItemRedirectComponent },
       { path: 'org', component: OrgAdminPageComponent, canActivate: [orgAdminGuard] },
+      { path: 'purchase-orders', component: PurchaseOrdersPageComponent, canActivate: [orgAdminGuard] },
       { path: 'notifications', component: NotificationsPageComponent },
       { path: '', redirectTo: 'projects', pathMatch: 'full' },
     ],

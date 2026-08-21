@@ -1,0 +1,331 @@
+@if (loading()) {
+  <div class="flex flex-col gap-4 animate-fade-in">
+    <div class="h-10 w-64 animate-pulse rounded-xl bg-slate-200"></div>
+    <div class="h-24 animate-pulse rounded-2xl bg-slate-100"></div>
+    <div class="h-96 animate-pulse rounded-2xl bg-slate-100"></div>
+  </div>
+} @else {
+  <div class="mx-auto flex max-w-5xl flex-col gap-6 animate-fade-in">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3.5">
+        <span
+          class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white"
+          style="background: linear-gradient(135deg, #f59e0b, #f97316); box-shadow: 0 6px 16px -4px rgb(245 158 11 / 0.4)"
+        >
+          <app-icon name="workflow" [size]="20" />
+        </span>
+        <div>
+          <h1 class="text-[26px] font-bold tracking-tight text-slate-900">Purchase orders</h1>
+          <p class="mt-0.5 text-sm text-slate-500">Bundle approved supply requests from any project into one bulk order.</p>
+        </div>
+      </div>
+      <button type="button" class="btn-primary shrink-0" (click)="openNewOrder()">
+        <app-icon name="plus" [size]="16" />
+        New purchase order
+      </button>
+    </div>
+
+    <!-- KPI strip -->
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <button
+        type="button"
+        class="card flex w-full items-center gap-3 p-4 text-left transition-all duration-200 enabled:hover:-translate-y-0.5 enabled:hover:border-primary-200 enabled:hover:shadow-[var(--shadow-lift)] active:enabled:scale-[0.99] disabled:cursor-default"
+        [disabled]="orders().length === 0"
+        (click)="setStatusFilter('ALL')"
+      >
+        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
+          <app-icon name="workflow" [size]="17" />
+        </span>
+        <div class="min-w-0">
+          <p class="text-xl font-bold leading-tight text-slate-900">{{ orders().length }}</p>
+          <p class="truncate text-xs text-slate-500">Total orders</p>
+        </div>
+      </button>
+      <button
+        type="button"
+        class="card flex w-full items-center gap-3 p-4 text-left transition-all duration-200 enabled:hover:-translate-y-0.5 enabled:hover:border-primary-200 enabled:hover:shadow-[var(--shadow-lift)] active:enabled:scale-[0.99] disabled:cursor-default"
+        [disabled]="openOrderCount() === 0"
+        (click)="setStatusFilter('ORDERED')"
+      >
+        <span
+          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors {{
+            openOrderCount() > 0 ? 'bg-sky-100 text-sky-600' : 'bg-slate-100 text-slate-400'
+          }}"
+        >
+          <app-icon name="calendar" [size]="17" />
+        </span>
+        <div class="min-w-0">
+          <p class="text-xl font-bold leading-tight text-slate-900">{{ openOrderCount() }}</p>
+          <p class="truncate text-xs text-slate-500">Awaiting delivery</p>
+        </div>
+      </button>
+      <button
+        type="button"
+        class="card flex w-full items-center gap-3 p-4 text-left transition-all duration-200 enabled:hover:-translate-y-0.5 enabled:hover:border-primary-200 enabled:hover:shadow-[var(--shadow-lift)] active:enabled:scale-[0.99] disabled:cursor-default"
+        [disabled]="receivedOrderCount() === 0"
+        (click)="setStatusFilter('RECEIVED')"
+      >
+        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+          <app-icon name="check" [size]="17" />
+        </span>
+        <div class="min-w-0">
+          <p class="text-xl font-bold leading-tight text-slate-900">{{ receivedOrderCount() }}</p>
+          <p class="truncate text-xs text-slate-500">Received</p>
+        </div>
+      </button>
+      <div class="card flex items-center gap-3 p-4">
+        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+          <app-icon name="fields" [size]="17" />
+        </span>
+        <div class="min-w-0">
+          <p class="text-xl font-bold leading-tight text-slate-900">{{ lineItemCount() }}</p>
+          <p class="truncate text-xs text-slate-500">Line items bundled</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card flex flex-wrap items-center gap-2 p-3">
+      <button
+        type="button"
+        class="rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95 {{
+          statusFilter() === 'ALL' ? 'bg-primary-50 text-primary-700' : 'text-slate-500 hover:bg-slate-50'
+        }}"
+        (click)="setStatusFilter('ALL')"
+      >
+        All
+      </button>
+      @for (s of statuses; track s) {
+        <button
+          type="button"
+          class="rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95 {{
+            statusFilter() === s ? 'bg-primary-50 text-primary-700' : 'text-slate-500 hover:bg-slate-50'
+          }}"
+          (click)="setStatusFilter(s)"
+        >
+          {{ s.charAt(0) + s.slice(1).toLowerCase() }}
+        </button>
+      }
+    </div>
+
+    @if (orders().length === 0) {
+      <app-empty-state icon="🧾" title="No purchase orders yet" description="Bundle approved supply requests into a bulk order once you have some to work with.">
+        <button type="button" class="btn-primary mt-1" (click)="openNewOrder()">+ New purchase order</button>
+      </app-empty-state>
+    } @else if (filteredOrders().length === 0) {
+      <p class="px-1 text-sm text-slate-400">No orders with this status.</p>
+    } @else {
+      <div class="flex flex-col gap-4">
+        @for (o of filteredOrders(); track o.id) {
+          <div class="card overflow-hidden p-0 transition-shadow duration-200 hover:shadow-[var(--shadow-lift)]">
+            <div class="flex flex-wrap items-start justify-between gap-3 p-5">
+              <div class="flex items-center gap-3">
+                <span
+                  class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold {{ colorFor(o.vendorName).bg }} {{ colorFor(o.vendorName).text }}"
+                >
+                  {{ initialsFor(o.vendorName) }}
+                </span>
+                <div>
+                  <p class="font-semibold text-slate-800">{{ o.vendorName }}</p>
+                  <p class="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-400">
+                    <app-avatar [name]="o.createdByName" [size]="16" />
+                    {{ o.createdByName }} · {{ o.createdAt | date: 'medium' }}
+                  </p>
+                  @if (o.note) {
+                    <p class="mt-1 text-xs text-slate-500">"{{ o.note }}"</p>
+                  }
+                  @if (o.closedByName) {
+                    <p class="mt-1 text-xs text-slate-400">
+                      {{ o.status === 'RECEIVED' ? 'Received' : 'Cancelled' }} by {{ o.closedByName }}
+                      @if (o.closedAt) { · {{ o.closedAt | date: 'medium' }} }
+                    </p>
+                  }
+                </div>
+              </div>
+              <span
+                class="flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold {{
+                  o.status === 'ORDERED' ? 'bg-sky-100 text-sky-700' : o.status === 'RECEIVED' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                }}"
+              >
+                <span
+                  class="h-1.5 w-1.5 rounded-full {{
+                    o.status === 'ORDERED' ? 'bg-sky-500' : o.status === 'RECEIVED' ? 'bg-emerald-500' : 'bg-slate-400'
+                  }}"
+                ></span>
+                {{ o.status }}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              class="flex w-full items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/60 px-5 py-2.5 text-left text-xs font-semibold text-slate-500 transition-colors hover:bg-slate-100"
+              (click)="toggleExpanded(o.id)"
+            >
+              <span>{{ o.lines.length }} line item{{ o.lines.length === 1 ? '' : 's' }}</span>
+              <app-icon
+                name="chevron-down"
+                [size]="14"
+                class="shrink-0 text-slate-400 transition-transform duration-200 {{ isExpanded(o) ? 'rotate-0' : '-rotate-90' }}"
+              />
+            </button>
+
+            <!-- 0fr/1fr grid-row trick, not @if - gives the accordion a real
+                 height transition instead of an abrupt DOM swap. The table
+                 stays mounted (just clipped to 0 height) so there's always
+                 something there to animate against. -->
+            <div class="grid transition-[grid-template-rows] duration-300 ease-out" [style.grid-template-rows]="isExpanded(o) ? '1fr' : '0fr'">
+              <div class="overflow-hidden">
+                <div class="overflow-x-auto px-5 pb-5 pt-3">
+                  <table class="w-full min-w-[560px] text-sm">
+                    <thead class="border-b border-slate-100 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      <tr>
+                        <th class="py-2 pr-3">Project</th>
+                        <th class="py-2 pr-3">Material</th>
+                        <th class="py-2 pr-3">Location</th>
+                        <th class="py-2 pr-6 text-right">Quantity</th>
+                        <th class="py-2 pl-3 pr-3">Requested by</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                      @for (line of o.lines; track line.supplyRequestId) {
+                        <tr>
+                          <td class="py-2 pr-3 text-slate-600">{{ line.projectName }}</td>
+                          <td class="py-2 pr-3 font-medium text-slate-800">{{ line.materialName }}</td>
+                          <td class="py-2 pr-3 text-slate-600">{{ line.locationName }}</td>
+                          <td class="py-2 pr-6 text-right text-slate-600">{{ line.quantity }} {{ line.unit }}</td>
+                          <td class="py-2 pl-3 pr-3 text-slate-500">{{ line.requestedByName }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            @if (o.status === 'ORDERED') {
+              <div class="flex justify-end gap-2 border-t border-slate-100 px-5 py-3.5">
+                <button
+                  type="button"
+                  class="btn-secondary h-8 px-3 text-xs"
+                  [disabled]="actionBusyId() === o.id"
+                  (click)="cancelOrder(o)"
+                >
+                  Cancel order
+                </button>
+                <button
+                  type="button"
+                  class="btn-primary h-8 px-3 text-xs"
+                  [disabled]="actionBusyId() === o.id"
+                  (click)="receiveOrder(o)"
+                >
+                  Mark received
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <app-modal [open]="newOrderModalOpen()" title="New purchase order" [width]="680" (closed)="newOrderModalOpen.set(false)">
+    <div class="flex flex-col gap-4">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label class="label" for="vendorName">Vendor</label>
+          <input id="vendorName" type="text" class="input" placeholder="Acme Building Supply" [(ngModel)]="vendorName" />
+        </div>
+        <div>
+          <label class="label" for="orderNote">Reference / note (optional)</label>
+          <input id="orderNote" type="text" class="input" placeholder="PO #, delivery date…" [(ngModel)]="orderNote" />
+        </div>
+      </div>
+
+      <div>
+        <div class="mb-2 flex items-center justify-between">
+          <label class="label !mb-0">Requests to include</label>
+          @if (orderableRequests().length > 0) {
+            <button type="button" class="text-xs font-semibold text-primary-600 transition-colors duration-150 hover:text-primary-700 active:scale-95" (click)="toggleSelectAll()">
+              {{ allOrderableSelected() ? 'Deselect all' : 'Select all' }}
+            </button>
+          }
+        </div>
+
+        @if (orderableLoading()) {
+          <div class="flex flex-col gap-2">
+            @for (n of [1, 2, 3]; track n) {
+              <div class="h-14 animate-pulse rounded-xl bg-slate-100"></div>
+            }
+          </div>
+        } @else if (orderableRequests().length === 0) {
+          <app-empty-state icon="✅" title="Nothing to order" description="No approved supply requests are waiting to be bundled right now." />
+        } @else {
+          <div class="flex max-h-96 flex-col gap-3 overflow-y-auto rounded-xl border border-slate-100 p-3">
+            @for (group of orderableByProject(); track group.projectId) {
+              <div>
+                <button
+                  type="button"
+                  class="mb-1 flex w-full items-center justify-between gap-2 rounded-lg px-1.5 py-1 text-left transition-colors duration-150 hover:bg-slate-50 active:scale-[0.99]"
+                  (click)="toggleGroup(group)"
+                >
+                  <span class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <app-icon name="folder" [size]="12" />
+                    {{ group.projectName }}
+                  </span>
+                  <span class="text-xs font-medium text-primary-600">
+                    {{ isGroupFullySelected(group) ? 'Deselect' : 'Select all' }}
+                  </span>
+                </button>
+                <div class="flex flex-col gap-1">
+                  @for (r of group.requests; track r.id) {
+                    <label
+                      class="flex cursor-pointer items-start gap-3 rounded-lg p-2.5 transition-all duration-150 {{
+                        isSelected(r.id) ? 'bg-primary-50 ring-1 ring-inset ring-primary-200' : 'hover:bg-slate-50'
+                      }}"
+                    >
+                      <input
+                        type="checkbox"
+                        class="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-primary-600 transition-transform duration-150 checked:scale-110"
+                        [ngModel]="isSelected(r.id)"
+                        (ngModelChange)="toggleRequest(r.id)"
+                        [ngModelOptions]="{ standalone: true }"
+                      />
+                      <div class="min-w-0 flex-1">
+                        <p class="text-sm text-slate-700">
+                          <span class="font-semibold text-slate-800">{{ r.quantity }} {{ r.unit }}</span>
+                          of <span class="font-medium">{{ r.materialName }}</span> · {{ r.locationName }}
+                        </p>
+                        <p class="mt-0.5 text-xs text-slate-400">
+                          {{ r.requestedByName }} · {{ r.requestedAt | date: 'medium' }}
+                          @if (r.note) { · "{{ r.note }}" }
+                        </p>
+                      </div>
+                    </label>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="mt-1 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+        <p class="text-xs text-slate-500">
+          @if (selectedRequests().length > 0) {
+            <span class="font-semibold text-primary-600">{{ selectedRequests().length }}</span>
+            request{{ selectedRequests().length === 1 ? '' : 's' }} selected across
+            <span class="font-semibold text-primary-600">{{ selectedProjectCount() }}</span>
+            project{{ selectedProjectCount() === 1 ? '' : 's' }}
+          } @else {
+            Nothing selected yet
+          }
+        </p>
+        <div class="flex gap-2">
+          <button type="button" class="btn-secondary" (click)="newOrderModalOpen.set(false)">Cancel</button>
+          <button type="button" class="btn-primary" [disabled]="creating()" (click)="saveNewOrder()">
+            {{ creating() ? 'Creating…' : 'Create purchase order' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </app-modal>
+}

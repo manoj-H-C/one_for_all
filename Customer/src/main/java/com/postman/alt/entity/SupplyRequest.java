@@ -79,6 +79,14 @@ public class SupplyRequest {
     @JoinColumn(name = "fulfilled_movement_id")
     private InventoryMovement fulfilledMovement;
 
+    // set once this request is bundled into an org-level PurchaseOrder (see
+    // markOrdered/revertToApproved) - cleared again if that order is
+    // cancelled, so the request goes back to being available for a
+    // different one.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "purchase_order_id")
+    private PurchaseOrder purchaseOrder;
+
     protected SupplyRequest() {
         // JPA
     }
@@ -103,6 +111,17 @@ public class SupplyRequest {
     public void fulfill(InventoryMovement movement) {
         this.status = SupplyRequestStatus.FULFILLED;
         this.fulfilledMovement = movement;
+    }
+
+    public void markOrdered(PurchaseOrder purchaseOrder) {
+        this.status = SupplyRequestStatus.ORDERED;
+        this.purchaseOrder = purchaseOrder;
+    }
+
+    /** Called when the PurchaseOrder this was bundled into gets cancelled - makes the request available for a future one. */
+    public void revertToApproved() {
+        this.status = SupplyRequestStatus.APPROVED;
+        this.purchaseOrder = null;
     }
 
     public UUID getId() {
@@ -155,5 +174,9 @@ public class SupplyRequest {
 
     public InventoryMovement getFulfilledMovement() {
         return fulfilledMovement;
+    }
+
+    public PurchaseOrder getPurchaseOrder() {
+        return purchaseOrder;
     }
 }

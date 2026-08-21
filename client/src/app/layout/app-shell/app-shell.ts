@@ -91,6 +91,7 @@ export class AppShellComponent implements OnInit, OnDestroy {
     ];
     if (this.authStore.isOwner() || this.authStore.canManageMembers()) {
       items.push({ icon: 'building', label: 'User Management', link: ['/org'] });
+      items.push({ icon: 'workflow', label: 'Purchase Orders', link: ['/purchase-orders'] });
     }
     return items;
   });

@@ -17,4 +17,15 @@ public interface SupplyRequestRepository extends JpaRepository<SupplyRequest, UU
     List<SupplyRequest> findByProject_IdAndRequestedBy_IdAndStatusOrderByRequestedAtDesc(
             UUID projectId, UUID requestedById, SupplyRequestStatus status
     );
+
+    // org-wide (not project-scoped like everything above) - the candidate
+    // pool PurchaseOrderServiceImpl.listOrderableRequests offers an org
+    // admin to bundle into a new order: approved, not already sitting on
+    // some other order.
+    List<SupplyRequest> findByProject_Organization_IdAndStatusAndPurchaseOrderIsNullOrderByRequestedAtDesc(
+            UUID organizationId, SupplyRequestStatus status
+    );
+
+    // a purchase order's line items.
+    List<SupplyRequest> findByPurchaseOrder_Id(UUID purchaseOrderId);
 }

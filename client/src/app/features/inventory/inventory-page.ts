@@ -32,6 +32,8 @@ import { colorForIndex } from '../../shared/util/color-hash';
 
 type Tab = 'balances' | 'catalog' | 'requests';
 
+const OPEN_REQUEST_STATUSES: readonly SupplyRequestStatus[] = ['PENDING', 'APPROVED', 'ORDERED'];
+
 /** A material's balance summed across every location - the project-wide "how much do we actually have" number, since InventoryBalanceResponse is always scoped to one location. */
 interface MaterialTotal {
   materialId: string;
@@ -81,8 +83,15 @@ export class InventoryPageComponent implements OnInit {
   readonly exporting = signal(false);
 
   readonly supplyRequests = signal<SupplyRequestResponse[]>([]);
-  readonly requestsLoading = signal(false);
-  readonly requestStatusFilter = signal<SupplyRequestStatus | 'ALL'>('ALL');
+  // 'OPEN' (the default) means still-actionable - pending, approved, or
+  // ordered - so the tab opens on what needs attention instead of every
+  // fulfilled/rejected/cancelled request ever made. Filtering (status and
+  // "only mine") is entirely client-side over the one full load from
+  // loadAll() - the backend already scoped that load to everything this
+  // user is allowed to see, so there's no need for a network round-trip
+  // just to narrow it further, unlike most other filters that hit the
+  // server (transfer/movement history, balances by location).
+  readonly requestStatusFilter = signal<SupplyRequestStatus | 'ALL' | 'OPEN'>('OPEN');
   readonly requestMineOnly = signal(false);
   readonly requestActionBusyId = signal<string | null>(null);
 
@@ -93,6 +102,18 @@ export class InventoryPageComponent implements OnInit {
   readonly currentUserId = computed(() => this.authStore.currentUser()?.id ?? null);
 
   readonly pendingRequestCount = computed(() => this.supplyRequests().filter((r) => r.status === 'PENDING').length);
+
+  readonly filteredSupplyRequests = computed(() => {
+    const filter = this.requestStatusFilter();
+    const mineOnly = this.requestMineOnly();
+    const userId = this.currentUserId();
+    return this.supplyRequests().filter((r) => {
+      if (mineOnly && r.requestedById !== userId) return false;
+      if (filter === 'ALL') return true;
+      if (filter === 'OPEN') return (OPEN_REQUEST_STATUSES as string[]).includes(r.status);
+      return r.status === filter;
+    });
+  });
 
   readonly selectedLocationName = computed(
     () => this.locations().find((l) => l.id === this.selectedLocationId())?.name ?? null,
@@ -245,22 +266,6 @@ export class InventoryPageComponent implements OnInit {
       this.recentMovements.set(recentMovements.slice(0, 15));
       this.supplyRequests.set(supplyRequests);
       this.loading.set(false);
-    });
-  }
-
-  reloadRequests(): void {
-    this.requestsLoading.set(true);
-    const filter = this.requestStatusFilter();
-    const status = filter === 'ALL' ? undefined : filter;
-    this.inventoryService.listSupplyRequests(this.projectId, status, this.requestMineOnly()).subscribe({
-      next: (requests) => {
-        this.supplyRequests.set(requests);
-        this.requestsLoading.set(false);
-      },
-      error: (err) => {
-        this.requestsLoading.set(false);
-        this.toast.error(err.message);
-      },
     });
   }
 
@@ -598,12 +603,27 @@ export class InventoryPageComponent implements OnInit {
     );
   }
 
-  openNewRequest(): void {
-    this.newRequestMaterialId.set(this.materials()[0]?.id ?? '');
-    this.newRequestLocationId.set(this.selectedLocationId() ?? this.locations()[0]?.id ?? '');
+  // materialId/locationId let a "Request more" shortcut (low stock, a
+  // catalog card) open this pre-filled instead of making the person
+  // re-pick a material they were just looking at.
+  openNewRequest(materialId?: string, locationId?: string): void {
+    this.newRequestMaterialId.set(materialId ?? this.materials()[0]?.id ?? '');
+    this.newRequestLocationId.set(locationId ?? this.selectedLocationId() ?? this.locations()[0]?.id ?? '');
     this.newRequestQuantity.set('');
     this.newRequestNote.set('');
     this.newRequestModalOpen.set(true);
+  }
+
+  // true if this material (optionally at this exact location) already has a
+  // request out that hasn't been resolved yet - used to swap a "Request"
+  // shortcut for an "Already requested" tag instead of inviting a duplicate.
+  hasOpenRequestFor(materialId: string, locationId?: string): boolean {
+    return this.supplyRequests().some(
+      (r) =>
+        r.materialId === materialId &&
+        (locationId === undefined || r.locationId === locationId) &&
+        (OPEN_REQUEST_STATUSES as string[]).includes(r.status),
+    );
   }
 
   saveNewRequest(): void {

@@ -41,7 +41,15 @@ export type FieldType = (typeof FIELD_TYPES)[number];
 export const WORK_ITEM_LINK_TYPES = ['PARENT_OF', 'BLOCKS', 'DUPLICATES', 'RELATES_TO'] as const;
 export type WorkItemLinkType = (typeof WORK_ITEM_LINK_TYPES)[number];
 
-export const NOTIFICATION_TYPES = ['ASSIGNED', 'MENTIONED', 'STATUS_CHANGED', 'COMMENT_ADDED'] as const;
+export const NOTIFICATION_TYPES = [
+  'ASSIGNED',
+  'MENTIONED',
+  'STATUS_CHANGED',
+  'COMMENT_ADDED',
+  'SUPPLY_REQUEST_APPROVED',
+  'SUPPLY_REQUEST_REJECTED',
+  'SUPPLY_REQUEST_FULFILLED',
+] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 export type InvitationStatus = 'PENDING' | 'ACCEPTED' | 'EXPIRED' | 'REVOKED';

@@ -7,6 +7,7 @@ import java.util.UUID;
 public record SupplyRequestResponse(
         UUID id,
         UUID projectId,
+        String projectName,
         UUID materialId,
         String materialName,
         String unit,

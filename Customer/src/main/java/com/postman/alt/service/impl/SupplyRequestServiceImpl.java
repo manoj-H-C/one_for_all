@@ -4,9 +4,11 @@ import com.postman.alt.entity.AppUser;
 import com.postman.alt.entity.InventoryLocation;
 import com.postman.alt.entity.InventoryMaterial;
 import com.postman.alt.entity.InventoryMovement;
+import com.postman.alt.entity.Notification;
 import com.postman.alt.entity.Project;
 import com.postman.alt.entity.SupplyRequest;
 import com.postman.alt.enums.MovementType;
+import com.postman.alt.enums.NotificationType;
 import com.postman.alt.enums.SupplyRequestStatus;
 import com.postman.alt.exception.BadRequestException;
 import com.postman.alt.exception.ConflictException;
@@ -16,6 +18,7 @@ import com.postman.alt.repository.AppUserRepository;
 import com.postman.alt.repository.InventoryLocationRepository;
 import com.postman.alt.repository.InventoryMaterialRepository;
 import com.postman.alt.repository.InventoryMovementRepository;
+import com.postman.alt.repository.NotificationRepository;
 import com.postman.alt.repository.ProjectRepository;
 import com.postman.alt.repository.SupplyRequestRepository;
 import com.postman.alt.service.ProjectAccessService;
@@ -41,6 +44,7 @@ public class SupplyRequestServiceImpl implements SupplyRequestService {
     private final InventoryMovementRepository movementRepository;
     private final ProjectRepository projectRepository;
     private final AppUserRepository appUserRepository;
+    private final NotificationRepository notificationRepository;
     private final ProjectAccessService projectAccessService;
 
     public SupplyRequestServiceImpl(
@@ -50,6 +54,7 @@ public class SupplyRequestServiceImpl implements SupplyRequestService {
             InventoryMovementRepository movementRepository,
             ProjectRepository projectRepository,
             AppUserRepository appUserRepository,
+            NotificationRepository notificationRepository,
             ProjectAccessService projectAccessService
     ) {
         this.supplyRequestRepository = supplyRequestRepository;
@@ -58,6 +63,7 @@ public class SupplyRequestServiceImpl implements SupplyRequestService {
         this.movementRepository = movementRepository;
         this.projectRepository = projectRepository;
         this.appUserRepository = appUserRepository;
+        this.notificationRepository = notificationRepository;
         this.projectAccessService = projectAccessService;
     }
 
@@ -115,7 +121,11 @@ public class SupplyRequestServiceImpl implements SupplyRequestService {
             throw new ConflictException("Only a pending request can be approved");
         }
 
-        supplyRequest.decide(SupplyRequestStatus.APPROVED, getUser(requesterId), noteOf(request));
+        AppUser decidedBy = getUser(requesterId);
+        supplyRequest.decide(SupplyRequestStatus.APPROVED, decidedBy, noteOf(request));
+        notifyRequester(supplyRequest, decidedBy, NotificationType.SUPPLY_REQUEST_APPROVED,
+                "Your request for " + supplyRequest.getQuantity() + " " + supplyRequest.getMaterial().getUnit()
+                        + " of " + supplyRequest.getMaterial().getName() + " was approved");
         return toResponse(supplyRequest);
     }
 
@@ -130,7 +140,13 @@ public class SupplyRequestServiceImpl implements SupplyRequestService {
             throw new ConflictException("Only a pending request can be rejected");
         }
 
-        supplyRequest.decide(SupplyRequestStatus.REJECTED, getUser(requesterId), noteOf(request));
+        AppUser decidedBy = getUser(requesterId);
+        String decisionNote = noteOf(request);
+        supplyRequest.decide(SupplyRequestStatus.REJECTED, decidedBy, decisionNote);
+        notifyRequester(supplyRequest, decidedBy, NotificationType.SUPPLY_REQUEST_REJECTED,
+                "Your request for " + supplyRequest.getQuantity() + " " + supplyRequest.getMaterial().getUnit()
+                        + " of " + supplyRequest.getMaterial().getName() + " was rejected"
+                        + (decisionNote != null ? " — " + decisionNote : ""));
         return toResponse(supplyRequest);
     }
 
@@ -155,7 +171,21 @@ public class SupplyRequestServiceImpl implements SupplyRequestService {
                 supplyRequest.getQuantity(), MovementType.ALLOCATED, movementNote, fulfilledBy
         ));
         supplyRequest.fulfill(movement);
+        notifyRequester(supplyRequest, fulfilledBy, NotificationType.SUPPLY_REQUEST_FULFILLED,
+                "Your request for " + supplyRequest.getQuantity() + " " + supplyRequest.getMaterial().getUnit()
+                        + " of " + supplyRequest.getMaterial().getName() + " was fulfilled");
         return toResponse(supplyRequest);
+    }
+
+    // no-op if the requester is deciding on their own request (an INVENTORY_
+    // MANAGE holder can also raise requests) - nobody needs to be told about
+    // their own action.
+    private void notifyRequester(SupplyRequest supplyRequest, AppUser actor, NotificationType type, String message) {
+        AppUser recipient = supplyRequest.getRequestedBy();
+        if (recipient.getId().equals(actor.getId())) {
+            return;
+        }
+        notificationRepository.save(new Notification(recipient, null, actor, type, message));
     }
 
     @Override
@@ -253,7 +283,7 @@ public class SupplyRequestServiceImpl implements SupplyRequestService {
     private SupplyRequestResponse toResponse(SupplyRequest r) {
         AppUser decidedBy = r.getDecidedBy();
         return new SupplyRequestResponse(
-                r.getId(), r.getProject().getId(),
+                r.getId(), r.getProject().getId(), r.getProject().getName(),
                 r.getMaterial().getId(), r.getMaterial().getName(), r.getMaterial().getUnit(),
                 r.getLocation().getId(), r.getLocation().getName(),
                 r.getQuantity(), r.getStatus().name(), r.getNote(),
