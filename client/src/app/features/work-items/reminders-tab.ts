@@ -6,23 +6,42 @@ import { ReminderResponse } from '../../core/models/reminder.model';
 import { ToastService } from '../../core/state/toast.service';
 import { IconComponent } from '../../shared/ui/icon';
 
+/** ISO instant -> the local "yyyy-MM-ddThh:mm" a <input type="datetime-local"> expects, in the browser's own timezone. */
+function toLocalInputValue(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 @Component({
   selector: 'app-reminders-tab',
   imports: [FormsModule, DatePipe, IconComponent],
   template: `
     <div class="flex flex-col gap-4">
-      <div class="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-end">
-        <div class="flex-1">
-          <label class="mb-1 block text-xs font-medium text-slate-500" for="remindAt">Remind me at</label>
-          <input id="remindAt" type="datetime-local" class="input" [(ngModel)]="remindAtInput" />
+      <div class="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+        @if (editingId()) {
+          <p class="flex items-center gap-1.5 text-xs font-semibold text-primary-700">
+            <app-icon name="edit" [size]="12" />
+            Editing reminder
+          </p>
+        }
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
+          <div class="flex-1">
+            <label class="mb-1 block text-xs font-medium text-slate-500" for="remindAt">Due at</label>
+            <input id="remindAt" type="datetime-local" class="input" [(ngModel)]="remindAtInput" />
+            <p class="mt-1 text-xs text-slate-400">You'll be notified 10 minutes before this time.</p>
+          </div>
+          <div class="flex-1">
+            <label class="mb-1 block text-xs font-medium text-slate-500" for="remindNote">Note (optional)</label>
+            <input id="remindNote" type="text" class="input" placeholder="Follow up on pricing…" [(ngModel)]="note" (keyup.enter)="save()" />
+          </div>
+          @if (editingId()) {
+            <button type="button" class="btn-secondary shrink-0" (click)="cancelEdit()">Cancel</button>
+          }
+          <button type="button" class="btn-primary shrink-0" [disabled]="saving()" (click)="save()">
+            {{ saving() ? 'Saving…' : editingId() ? 'Save changes' : 'Set reminder' }}
+          </button>
         </div>
-        <div class="flex-1">
-          <label class="mb-1 block text-xs font-medium text-slate-500" for="remindNote">Note (optional)</label>
-          <input id="remindNote" type="text" class="input" placeholder="Follow up on pricing…" [(ngModel)]="note" (keyup.enter)="create()" />
-        </div>
-        <button type="button" class="btn-primary shrink-0" [disabled]="creating()" (click)="create()">
-          {{ creating() ? 'Setting…' : 'Set reminder' }}
-        </button>
       </div>
 
       @if (reminders().length === 0) {
@@ -44,11 +63,20 @@ import { IconComponent } from '../../shared/ui/icon';
                   {{ r.status }}
                 </span>
               </div>
-              @if (r.status !== 'DISMISSED') {
-                <button type="button" class="shrink-0 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" title="Dismiss" (click)="dismiss(r)">
-                  <app-icon name="check" [size]="14" />
-                </button>
-              }
+              <div class="flex shrink-0 items-center gap-2">
+                @if (r.status === 'PENDING') {
+                  <button type="button" class="btn-secondary shrink-0 !px-3 !py-1.5 text-xs" (click)="startEdit(r)">
+                    <app-icon name="edit" [size]="13" />
+                    Edit
+                  </button>
+                }
+                @if (r.status !== 'DISMISSED') {
+                  <button type="button" class="btn-secondary shrink-0 !px-3 !py-1.5 text-xs" (click)="dismiss(r)">
+                    <app-icon name="check" [size]="13" />
+                    Dismiss
+                  </button>
+                }
+              </div>
             </div>
           }
         </div>
@@ -65,7 +93,8 @@ export class RemindersTabComponent implements OnInit {
   readonly reminders = signal<ReminderResponse[]>([]);
   readonly remindAtInput = signal('');
   readonly note = signal('');
-  readonly creating = signal(false);
+  readonly saving = signal(false);
+  readonly editingId = signal<string | null>(null);
 
   ngOnInit(): void {
     this.load();
@@ -75,7 +104,19 @@ export class RemindersTabComponent implements OnInit {
     this.reminderService.listForWorkItem(this.workItemId()).subscribe((reminders) => this.reminders.set(reminders));
   }
 
-  create(): void {
+  startEdit(reminder: ReminderResponse): void {
+    this.editingId.set(reminder.id);
+    this.remindAtInput.set(toLocalInputValue(reminder.remindAt));
+    this.note.set(reminder.note ?? '');
+  }
+
+  cancelEdit(): void {
+    this.editingId.set(null);
+    this.remindAtInput.set('');
+    this.note.set('');
+  }
+
+  save(): void {
     const raw = this.remindAtInput();
     if (!raw) {
       this.toast.error('Pick a date and time');
@@ -87,22 +128,28 @@ export class RemindersTabComponent implements OnInit {
       return;
     }
 
-    this.creating.set(true);
-    this.reminderService
-      .create(this.workItemId(), { remindAt: remindAt.toISOString(), note: this.note().trim() || null })
-      .subscribe({
-        next: (reminder) => {
-          this.creating.set(false);
-          this.remindAtInput.set('');
-          this.note.set('');
-          this.reminders.update((list) => [...list, reminder].sort((a, b) => a.remindAt.localeCompare(b.remindAt)));
-          this.toast.success('Reminder set');
-        },
-        error: (err) => {
-          this.creating.set(false);
-          this.toast.error(err.message);
-        },
-      });
+    this.saving.set(true);
+    const editingId = this.editingId();
+    const request$ = editingId
+      ? this.reminderService.update(editingId, { remindAt: remindAt.toISOString(), note: this.note().trim() || null })
+      : this.reminderService.create(this.workItemId(), { remindAt: remindAt.toISOString(), note: this.note().trim() || null });
+    request$.subscribe({
+      next: (reminder) => {
+        this.saving.set(false);
+        this.editingId.set(null);
+        this.remindAtInput.set('');
+        this.note.set('');
+        this.reminders.update((list) => {
+          const withoutThis = list.filter((r) => r.id !== reminder.id);
+          return [...withoutThis, reminder].sort((a, b) => a.remindAt.localeCompare(b.remindAt));
+        });
+        this.toast.success(editingId ? 'Reminder updated' : 'Reminder set');
+      },
+      error: (err) => {
+        this.saving.set(false);
+        this.toast.error(err.message);
+      },
+    });
   }
 
   dismiss(reminder: ReminderResponse): void {

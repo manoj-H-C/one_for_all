@@ -67,6 +67,51 @@ public class ReminderServiceImpl implements ReminderService {
     }
 
     @Override
+    @Transactional
+    public ReminderResponse createStandalone(UUID requesterId, ReminderCreateRequest request) {
+        if (!request.remindAt().isAfter(Instant.now())) {
+            throw new BadRequestException("Reminder time must be in the future");
+        }
+        if (request.title() == null || request.title().isBlank()) {
+            throw new BadRequestException("Title is required for a standalone reminder");
+        }
+
+        AppUser recipient = getUser(requesterId);
+        String note = request.note() != null && !request.note().isBlank() ? request.note().trim() : null;
+        Reminder reminder = reminderRepository.save(
+                new Reminder(request.title().trim(), recipient, request.remindAt(), note)
+        );
+        return toResponse(reminder);
+    }
+
+    @Override
+    @Transactional
+    public ReminderResponse update(UUID reminderId, UUID requesterId, ReminderCreateRequest request) {
+        Reminder reminder = reminderRepository.findById(reminderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Reminder", reminderId));
+        if (!reminder.getRecipient().getId().equals(requesterId)) {
+            throw new ForbiddenException("Only this reminder's recipient can edit it");
+        }
+        if (reminder.getStatus() != ReminderStatus.PENDING) {
+            throw new BadRequestException("Only a pending reminder can be edited");
+        }
+        if (!request.remindAt().isAfter(Instant.now())) {
+            throw new BadRequestException("Reminder time must be in the future");
+        }
+
+        String note = request.note() != null && !request.note().isBlank() ? request.note().trim() : null;
+        String title = null;
+        if (reminder.getWorkItem() == null) {
+            if (request.title() == null || request.title().isBlank()) {
+                throw new BadRequestException("Title is required for a standalone reminder");
+            }
+            title = request.title().trim();
+        }
+        reminder.update(request.remindAt(), note, title);
+        return toResponse(reminder);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<ReminderResponse> listMine(UUID requesterId, String statusFilter) {
         ReminderStatus status = parseStatus(statusFilter);
@@ -109,9 +154,14 @@ public class ReminderServiceImpl implements ReminderService {
     }
 
     private ReminderResponse toResponse(Reminder r) {
+        WorkItem item = r.getWorkItem();
         return new ReminderResponse(
-                r.getId(), r.getWorkItem().getId(), r.getWorkItem().getTitle(),
-                r.getWorkItem().getProject().getId(), r.getWorkItem().getProject().getName(),
+                r.getId(),
+                item != null ? item.getId() : null,
+                item != null ? item.getTitle() : null,
+                item != null ? item.getProject().getId() : null,
+                item != null ? item.getProject().getName() : null,
+                r.getDisplayTitle(),
                 r.getRemindAt(), r.getNote(), r.getStatus().name(), r.getCreatedAt()
         );
     }

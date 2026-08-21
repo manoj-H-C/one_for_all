@@ -26,7 +26,7 @@ import { SearchableSelectComponent, SearchableSelectOption } from '../../shared/
   selector: 'app-members-settings',
   imports: [FormsModule, AvatarComponent, IconComponent, StatusPillComponent, EmptyStateComponent, SearchableSelectComponent],
   template: `
-    <div class="mx-auto flex max-w-4xl flex-col gap-6 animate-fade-in">
+    <div class="mx-auto flex max-w-5xl flex-col gap-6 animate-fade-in">
       <div>
         <h1 class="text-2xl font-bold tracking-tight text-slate-900">Members</h1>
         <p class="mt-1 text-sm text-slate-500">

@@ -18,6 +18,14 @@ export class ReminderService {
     return this.http.post<ReminderResponse>(`${BASE}/work-items/${workItemId}/reminders`, request);
   }
 
+  createStandalone(request: ReminderCreateRequest): Observable<ReminderResponse> {
+    return this.http.post<ReminderResponse>(`${BASE}/reminders`, request);
+  }
+
+  update(reminderId: string, request: ReminderCreateRequest): Observable<ReminderResponse> {
+    return this.http.patch<ReminderResponse>(`${BASE}/reminders/${reminderId}`, request);
+  }
+
   listMine(status?: ReminderStatus): Observable<ReminderResponse[]> {
     let params = new HttpParams();
     if (status) params = params.set('status', status);

@@ -250,8 +250,17 @@ export class WorkItemDetailComponent implements OnInit {
   save(): void {
     if (!this.title().trim()) return;
     this.saving.set(true);
+    // only ever send fields the project still actually defines - a field
+    // deleted from Settings after this item already had a value for it
+    // stays in customFieldValues() (it's seeded straight from the item's
+    // own stored data in applyItem()) even though no input for it renders
+    // anymore, so echoing the whole map back would re-submit that orphaned
+    // key on every save and the server would reject it as unrecognized.
+    const definedFieldNames = new Set(this.customFields().map((f) => f.name));
     const normalizedCustomFields = Object.fromEntries(
-      Object.entries(this.customFieldValues()).map(([k, v]) => [k, v === '' ? null : v]),
+      Object.entries(this.customFieldValues())
+        .filter(([k]) => definedFieldNames.has(k))
+        .map(([k, v]) => [k, v === '' ? null : v]),
     );
     this.workItemService
       .update(this.workItemId, {

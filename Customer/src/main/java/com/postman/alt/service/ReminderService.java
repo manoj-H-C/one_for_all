@@ -23,6 +23,16 @@ public interface ReminderService {
     // the reminder's recipient is always the requester themselves.
     ReminderResponse create(UUID workItemId, UUID requesterId, ReminderCreateRequest request);
 
+    // not tied to any work item - just "remind me to X", for the requester
+    // themselves. No project/permission check applies since there's no
+    // project context, same as listMine below.
+    ReminderResponse createStandalone(UUID requesterId, ReminderCreateRequest request);
+
+    // only the reminder's own recipient can edit it, and only while it's
+    // still PENDING - editing when/what it says stops making sense once
+    // it's already fired (SENT) or been cleared (DISMISSED).
+    ReminderResponse update(UUID reminderId, UUID requesterId, ReminderCreateRequest request);
+
     // every reminder across every project the requester can see, sorted
     // soonest-first - statusFilter is an optional raw ReminderStatus name.
     List<ReminderResponse> listMine(UUID requesterId, String statusFilter);

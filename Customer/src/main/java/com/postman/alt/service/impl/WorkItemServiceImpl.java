@@ -116,7 +116,10 @@ public class WorkItemServiceImpl implements WorkItemService {
         }
 
         Map<String, Object> customFields = mergeCustomFields(Map.of(), request.customFields());
-        CustomFieldValidator.validate(customFieldDefinitionRepository.findByProjectId(projectId), customFields);
+        CustomFieldValidator.validate(
+                customFieldDefinitionRepository.findByProjectId(projectId), customFields,
+                request.customFields() != null ? request.customFields() : Map.of()
+        );
         item.setCustomFields(customFields);
 
         if (request.assigneeId() != null) {
@@ -209,7 +212,7 @@ public class WorkItemServiceImpl implements WorkItemService {
             // not mentioned in this request is left untouched.
             Map<String, Object> merged = mergeCustomFields(item.getCustomFields(), request.customFields());
             CustomFieldValidator.validate(
-                    customFieldDefinitionRepository.findByProjectId(item.getProject().getId()), merged
+                    customFieldDefinitionRepository.findByProjectId(item.getProject().getId()), merged, request.customFields()
             );
             item.setCustomFields(merged);
         }

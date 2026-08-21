@@ -22,19 +22,28 @@ public final class CustomFieldValidator {
     private CustomFieldValidator() {
     }
 
-    public static void validate(List<CustomFieldDefinition> definitions, Map<String, Object> values) {
+    /**
+     * @param merged      the full custom-fields state this write would result in - existing values plus this
+     *                    request's changes - checked for required fields and value types.
+     * @param touchedKeys the keys this specific request is actually trying to set or clear. Only these are
+     *                    checked for "unknown field" - a value already sitting on the item from a field
+     *                    definition that's since been deleted just carries over untouched rather than
+     *                    blocking every future edit to that item, since it was never this request's job to
+     *                    clean up old data it isn't even trying to change.
+     */
+    public static void validate(List<CustomFieldDefinition> definitions, Map<String, Object> merged, Map<String, Object> touchedKeys) {
         Map<String, CustomFieldDefinition> byName = definitions.stream()
                 .collect(Collectors.toMap(CustomFieldDefinition::getName, d -> d));
         List<String> errors = new ArrayList<>();
 
-        for (String key : values.keySet()) {
+        for (String key : touchedKeys.keySet()) {
             if (!byName.containsKey(key)) {
                 errors.add("Unknown custom field: " + key);
             }
         }
 
         for (CustomFieldDefinition definition : definitions) {
-            Object value = values.get(definition.getName());
+            Object value = merged.get(definition.getName());
             if (value == null) {
                 if (definition.isRequired()) {
                     errors.add(definition.getName() + " is required");

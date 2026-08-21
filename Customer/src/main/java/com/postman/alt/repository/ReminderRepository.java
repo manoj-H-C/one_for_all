@@ -18,7 +18,9 @@ public interface ReminderRepository extends JpaRepository<Reminder, UUID> {
 
     List<Reminder> findByRecipient_IdAndStatusOrderByRemindAtAsc(UUID recipientId, ReminderStatus status);
 
-    // what ReminderSchedulerService polls: every still-pending reminder
-    // whose time has arrived, across all users.
+    // what ReminderSchedulerService polls: every still-pending reminder due
+    // to fire by the given instant, across all users. The scheduler passes
+    // "now + the lead time" rather than bare now, since a reminder fires
+    // ahead of its own remindAt - see ReminderSchedulerService.LEAD_TIME.
     List<Reminder> findByStatusAndRemindAtLessThanEqual(ReminderStatus status, Instant now);
 }
