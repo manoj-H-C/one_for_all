@@ -1,22 +1,47 @@
 @if (loading()) {
-  <div class="mx-auto flex max-w-4xl flex-col gap-4">
+  <div class="mx-auto flex max-w-6xl flex-col gap-4">
     <div class="h-4 w-28 animate-pulse rounded-full bg-slate-200"></div>
-    <div class="h-56 animate-pulse rounded-2xl bg-slate-100"></div>
-    <div class="h-32 animate-pulse rounded-2xl bg-slate-100"></div>
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div class="flex flex-col gap-4 lg:col-span-2">
+        <div class="h-56 animate-pulse rounded-2xl bg-slate-100"></div>
+        <div class="h-40 animate-pulse rounded-2xl bg-slate-100"></div>
+      </div>
+      <div class="h-80 animate-pulse rounded-2xl bg-slate-100"></div>
+    </div>
   </div>
 } @else if (item(); as it) {
-  <div class="mx-auto max-w-4xl animate-fade-in">
-    <a
-      [routerLink]="['/projects', projectId, 'board']"
-      class="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-primary-600"
-    >
-      <app-icon name="arrow-left" [size]="15" />
-      Back to board
-    </a>
+  <div class="mx-auto max-w-6xl animate-fade-in">
+    <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <a
+          [routerLink]="['/projects', projectId, 'board']"
+          class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-primary-600"
+        >
+          <app-icon name="arrow-left" [size]="15" />
+          Board
+        </a>
+        @if (currentProjectStore.project(); as p) {
+          <span class="text-slate-300">/</span>
+          <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-slate-500">{{ p.key }}</span>
+        }
+      </div>
+      <div class="flex items-center gap-1.5">
+        <button type="button" class="btn-ghost px-3 py-2 text-xs" (click)="copyLink()">
+          <app-icon name="link" [size]="14" />
+          Copy link
+        </button>
+        @if (canDelete()) {
+          <button type="button" class="btn-ghost px-3 py-2 text-xs text-red-600 hover:bg-red-50" (click)="remove()">
+            <app-icon name="trash" [size]="14" />
+            Delete
+          </button>
+        }
+      </div>
+    </div>
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <div class="lg:col-span-2 flex flex-col gap-4">
-        <div class="card relative overflow-hidden p-6">
+      <div class="flex flex-col gap-4 lg:col-span-2">
+        <div class="card relative overflow-hidden p-6 sm:p-7">
           <span class="absolute inset-x-0 top-0 h-1" [style.background]="accent()"></span>
 
           @if (it.parentWorkItemId; as parentId) {
@@ -28,7 +53,7 @@
             </a>
           }
 
-          <div class="mb-3 flex flex-wrap items-center gap-2">
+          <div class="mb-4 flex flex-wrap items-center gap-2">
             <app-status-pill [name]="it.statusName" [colorOverride]="statusColor(it.statusId)" />
             <app-priority-badge [priority]="it.priority" />
             @if (it.typeName; as typeName) {
@@ -36,39 +61,57 @@
                 {{ typeName }}
               </span>
             }
+            @if (it.assigneeId) {
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 py-1 pl-1 pr-2.5 text-xs font-medium text-slate-600">
+                <app-avatar [name]="memberName(it.assigneeId)" [size]="18" />
+                {{ memberName(it.assigneeId) }}
+              </span>
+            }
+            @if (it.dueDate) {
+              <span
+                class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold {{
+                  overdue() ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'
+                }}"
+              >
+                <app-icon name="calendar" [size]="12" />
+                {{ overdue() ? 'Overdue · ' : 'Due ' }}{{ it.dueDate }}
+              </span>
+            }
           </div>
 
           <input
             type="text"
-            class="w-full border-none p-0 text-2xl font-bold tracking-tight text-slate-900 focus:outline-none focus:ring-0 disabled:bg-white"
+            class="-mx-1 w-[calc(100%+0.5rem)] rounded-lg border-none px-1 py-0.5 text-2xl font-bold tracking-tight text-slate-900 transition-colors focus:bg-slate-50 focus:outline-none focus:ring-0 disabled:bg-white"
             [(ngModel)]="title"
             [disabled]="!canEdit()"
             placeholder="Title"
           />
-          <textarea
-            class="input mt-4 resize-y"
-            rows="5"
-            placeholder="Add a description…"
-            [(ngModel)]="description"
-            [disabled]="!canEdit()"
-          ></textarea>
+
+          <div class="mt-5">
+            <p class="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <app-icon name="text" [size]="13" />
+              Description
+            </p>
+            @if (canEdit()) {
+              <app-rich-text-editor [(value)]="description" placeholder="Add a description…" />
+            } @else if (!isBlankHtml(description())) {
+              <app-rich-text-view [content]="description()" />
+            } @else {
+              <p class="text-sm text-slate-400">No description.</p>
+            }
+          </div>
 
           @if (customFields().length > 0) {
             <div class="mt-5 border-t border-slate-100 pt-5">
-              <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Custom fields</p>
+              <p class="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                <app-icon name="fields" [size]="13" />
+                Custom fields
+              </p>
               <app-custom-fields-form
                 [fields]="customFields()"
                 [members]="members()"
                 [(values)]="customFieldValues"
               />
-            </div>
-          }
-
-          @if (canEdit()) {
-            <div class="mt-5 flex justify-end">
-              <button type="button" class="btn-primary" [disabled]="saving()" (click)="save()">
-                {{ saving() ? 'Saving…' : 'Save changes' }}
-              </button>
             </div>
           }
         </div>
@@ -115,47 +158,22 @@
         }
 
         <div class="card p-6">
-          <div class="mb-4 flex gap-1 overflow-x-auto border-b border-slate-100 pb-3 text-sm">
-            <button
-              type="button"
-              class="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium transition-colors"
-              [class.bg-primary-50]="activeTab() === 'comments'"
-              [class.text-primary-700]="activeTab() === 'comments'"
-              [class.text-slate-500]="activeTab() !== 'comments'"
-              (click)="activeTab.set('comments')"
-            >
-              <app-icon name="message" [size]="14" /> Comments
-            </button>
-            <button
-              type="button"
-              class="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium transition-colors"
-              [class.bg-primary-50]="activeTab() === 'attachments'"
-              [class.text-primary-700]="activeTab() === 'attachments'"
-              [class.text-slate-500]="activeTab() !== 'attachments'"
-              (click)="activeTab.set('attachments')"
-            >
-              <app-icon name="photo" [size]="14" /> Attachments
-            </button>
-            <button
-              type="button"
-              class="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium transition-colors"
-              [class.bg-primary-50]="activeTab() === 'links'"
-              [class.text-primary-700]="activeTab() === 'links'"
-              [class.text-slate-500]="activeTab() !== 'links'"
-              (click)="activeTab.set('links')"
-            >
-              <app-icon name="tag" [size]="14" /> Links
-            </button>
-            <button
-              type="button"
-              class="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium transition-colors"
-              [class.bg-primary-50]="activeTab() === 'activity'"
-              [class.text-primary-700]="activeTab() === 'activity'"
-              [class.text-slate-500]="activeTab() !== 'activity'"
-              (click)="activeTab.set('activity')"
-            >
-              <app-icon name="text" [size]="14" /> Activity
-            </button>
+          <div class="mb-5 flex gap-5 overflow-x-auto border-b border-slate-100 text-sm">
+            @for (t of tabDefs; track t.key) {
+              <button
+                type="button"
+                class="relative flex shrink-0 items-center gap-1.5 pb-3 pt-1 font-medium transition-colors {{
+                  activeTab() === t.key ? 'text-primary-700' : 'text-slate-500 hover:text-slate-700'
+                }}"
+                (click)="activeTab.set(t.key)"
+              >
+                <app-icon [name]="t.icon" [size]="14" />
+                {{ t.label }}
+                @if (activeTab() === t.key) {
+                  <span class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary-600"></span>
+                }
+              </button>
+            }
           </div>
 
           @switch (activeTab()) {
@@ -171,13 +189,16 @@
             @case ('activity') {
               <app-activity-tab [workItemId]="workItemId" />
             }
+            @case ('reminders') {
+              <app-reminders-tab [workItemId]="workItemId" />
+            }
           }
         </div>
       </div>
 
       <div class="flex flex-col gap-4">
         <div class="card flex flex-col gap-4 p-6">
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Details</p>
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Planning</p>
 
           <div>
             <label class="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500">
@@ -217,98 +238,118 @@
               </select>
             </div>
           }
+        </div>
 
-          <div class="flex flex-col gap-4 border-t border-slate-100 pt-4">
-            <div>
-              <label class="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                <app-icon name="user" [size]="13" />
-                Assignee
-              </label>
-              <div class="flex items-center gap-2">
-                @if (it.assigneeId) {
-                  <app-avatar [name]="memberName(it.assigneeId)" [size]="26" />
-                }
-                <select class="input flex-1" [ngModel]="it.assigneeId ?? ''" [disabled]="!canAssign()" (ngModelChange)="changeAssignee($event)">
-                  <option value="">Unassigned</option>
-                  @for (m of members(); track m.userId) {
-                    <option [value]="m.userId">{{ m.name }}</option>
-                  }
-                </select>
-              </div>
-            </div>
+        <div class="card flex flex-col gap-4 p-6">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">People</p>
 
-            <div>
-              <label class="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                <app-icon name="at" [size]="13" />
-                Reporter
-              </label>
-              <div class="flex items-center gap-2">
-                @if (it.reporterId) {
-                  <app-avatar [name]="memberName(it.reporterId)" [size]="26" />
+          <div>
+            <label class="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500">
+              <app-icon name="user" [size]="13" />
+              Assignee
+            </label>
+            <div class="flex items-center gap-2">
+              @if (it.assigneeId) {
+                <app-avatar [name]="memberName(it.assigneeId)" [size]="26" />
+              }
+              <select class="input flex-1" [ngModel]="it.assigneeId ?? ''" [disabled]="!canAssign()" (ngModelChange)="changeAssignee($event)">
+                <option value="">Unassigned</option>
+                @for (m of members(); track m.userId) {
+                  <option [value]="m.userId">{{ m.name }}</option>
                 }
-                <select class="input flex-1" [ngModel]="it.reporterId ?? ''" [disabled]="!canEdit()" (ngModelChange)="changeReporter($event)">
-                  <option value="">Unassigned</option>
-                  @for (m of members(); track m.userId) {
-                    <option [value]="m.userId">{{ m.name }}</option>
-                  }
-                </select>
-              </div>
+              </select>
             </div>
           </div>
 
-          <div class="flex flex-col gap-4 border-t border-slate-100 pt-4">
-            @if (sprints().length > 0) {
-              <div>
-                <label class="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                  <app-icon name="calendar" [size]="13" />
-                  {{ currentProjectStore.sprintLabelSingular() }}
-                </label>
-                <select class="input" [ngModel]="it.sprintId ?? ''" [disabled]="!canEdit()" (ngModelChange)="changeSprint($event)">
-                  <option value="">Backlog</option>
-                  @for (s of sprints(); track s.id) {
-                    <option [value]="s.id">{{ s.name }}</option>
-                  }
-                </select>
-              </div>
-            }
+          <div>
+            <label class="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500">
+              <app-icon name="at" [size]="13" />
+              Reporter
+            </label>
+            <div class="flex items-center gap-2">
+              @if (it.reporterId) {
+                <app-avatar [name]="memberName(it.reporterId)" [size]="26" />
+              }
+              <select class="input flex-1" [ngModel]="it.reporterId ?? ''" [disabled]="!canEdit()" (ngModelChange)="changeReporter($event)">
+                <option value="">Unassigned</option>
+                @for (m of members(); track m.userId) {
+                  <option [value]="m.userId">{{ m.name }}</option>
+                }
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card flex flex-col gap-4 p-6">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Schedule</p>
+
+          @if (sprints().length > 0) {
             <div>
               <label class="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500">
                 <app-icon name="calendar" [size]="13" />
-                Due date
+                {{ currentProjectStore.sprintLabelSingular() }}
               </label>
-              <input
-                type="date"
-                class="input"
-                [class.border-red-300]="overdue()"
-                [(ngModel)]="dueDate"
-                [disabled]="!canEdit()"
-              />
-              @if (overdue()) {
-                <p class="mt-1 text-xs font-semibold text-red-600">Overdue</p>
-              }
+              <select class="input" [ngModel]="it.sprintId ?? ''" [disabled]="!canEdit()" (ngModelChange)="changeSprint($event)">
+                <option value="">Backlog</option>
+                @for (s of sprints(); track s.id) {
+                  <option [value]="s.id">{{ s.name }}</option>
+                }
+              </select>
             </div>
-          </div>
-
-          <div class="flex flex-col gap-1 border-t border-slate-100 pt-4 text-xs text-slate-400">
-            <p class="flex items-center gap-1.5">
-              <app-icon name="calendar" [size]="12" />
-              Created {{ it.createdAt | date: 'medium' }}
-            </p>
-            <p class="flex items-center gap-1.5">
-              <app-icon name="edit" [size]="12" />
-              Updated {{ it.updatedAt | date: 'medium' }}
-            </p>
-          </div>
-
-          @if (canDelete()) {
-            <button type="button" class="btn-danger w-full" (click)="remove()">
-              <app-icon name="trash" [size]="15" />
-              Delete {{ currentProjectStore.itemLabelSingular().toLowerCase() }}
-            </button>
           }
+          <div>
+            <label class="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-500">
+              <app-icon name="calendar" [size]="13" />
+              Due date
+            </label>
+            <input
+              type="date"
+              class="input"
+              [class.border-red-300]="overdue()"
+              [(ngModel)]="dueDate"
+              [disabled]="!canEdit()"
+            />
+            @if (overdue()) {
+              <p class="mt-1.5 flex items-center gap-1 text-xs font-semibold text-red-600">
+                <app-icon name="calendar" [size]="12" />
+                Overdue
+              </p>
+            }
+          </div>
+        </div>
+
+        <div class="rounded-2xl bg-slate-50/80 p-4 text-xs text-slate-400">
+          <p class="flex items-center gap-1.5">
+            <app-icon name="calendar" [size]="12" />
+            Created {{ it.createdAt | date: 'medium' }}
+          </p>
+          <p class="mt-1.5 flex items-center gap-1.5">
+            <app-icon name="edit" [size]="12" />
+            Updated {{ it.updatedAt | date: 'medium' }}
+          </p>
         </div>
       </div>
     </div>
+
+    @if (canEdit() && isDirty()) {
+      <div class="sticky bottom-4 z-20 mt-6 flex justify-center">
+        <div
+          class="card mx-auto flex w-full max-w-xl items-center justify-between gap-3 border-primary-200/70 bg-white/95 px-4 py-3 backdrop-blur-md"
+          style="box-shadow: var(--shadow-popover)"
+        >
+          <p class="flex items-center gap-2 text-sm font-medium text-slate-600">
+            <span class="h-2 w-2 shrink-0 animate-pulse rounded-full bg-amber-400"></span>
+            Unsaved changes
+          </p>
+          <div class="flex shrink-0 items-center gap-2">
+            <button type="button" class="btn-secondary px-3.5 py-2 text-sm" [disabled]="saving()" (click)="discard()">Discard</button>
+            <button type="button" class="btn-primary px-3.5 py-2 text-sm" [disabled]="saving()" (click)="save()">
+              {{ saving() ? 'Saving…' : 'Save changes' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
   </div>
 
   <app-create-work-item-modal

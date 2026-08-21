@@ -33,6 +33,7 @@ import { OrgAdminPageComponent } from './features/org-admin/org-admin-page';
 import { OrgSettingsPageComponent } from './features/org-settings/org-settings-page';
 import { PurchaseOrdersPageComponent } from './features/purchase-orders/purchase-orders-page';
 import { NotificationsPageComponent } from './features/notifications/notifications-page';
+import { RemindersPageComponent } from './features/reminders/reminders-page';
 
 export const routes: Routes = [
   // public marketing page - wins the bare "/" for logged-out visitors;
@@ -84,6 +85,7 @@ export const routes: Routes = [
       { path: 'org/settings', component: OrgSettingsPageComponent, canActivate: [ownerGuard] },
       { path: 'purchase-orders', component: PurchaseOrdersPageComponent, canActivate: [purchaseOrdersAccessGuard, purchaseOrdersEnabledGuard] },
       { path: 'notifications', component: NotificationsPageComponent },
+      { path: 'reminders', component: RemindersPageComponent },
       { path: '', redirectTo: 'projects', pathMatch: 'full' },
     ],
   },

@@ -16,10 +16,12 @@ import com.postman.alt.repository.NotificationRepository;
 import com.postman.alt.repository.ProjectMemberRepository;
 import com.postman.alt.repository.WorkItemRepository;
 import com.postman.alt.service.CommentService;
+import com.postman.alt.service.NotificationService;
 import com.postman.alt.service.ProjectAccessService;
 import com.postman.alt.service.dto.CommentCreateRequest;
 import com.postman.alt.service.dto.CommentResponse;
 import com.postman.alt.service.dto.CommentUpdateRequest;
+import com.postman.alt.service.dto.NotificationResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +36,7 @@ public class CommentServiceImpl implements CommentService {
     private final AppUserRepository appUserRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final NotificationRepository notificationRepository;
+    private final NotificationService notificationService;
     private final ProjectAccessService projectAccessService;
 
     public CommentServiceImpl(
@@ -42,6 +45,7 @@ public class CommentServiceImpl implements CommentService {
             AppUserRepository appUserRepository,
             ProjectMemberRepository projectMemberRepository,
             NotificationRepository notificationRepository,
+            NotificationService notificationService,
             ProjectAccessService projectAccessService
     ) {
         this.commentRepository = commentRepository;
@@ -49,6 +53,7 @@ public class CommentServiceImpl implements CommentService {
         this.appUserRepository = appUserRepository;
         this.projectMemberRepository = projectMemberRepository;
         this.notificationRepository = notificationRepository;
+        this.notificationService = notificationService;
         this.projectAccessService = projectAccessService;
     }
 
@@ -85,10 +90,11 @@ public class CommentServiceImpl implements CommentService {
         comment = commentRepository.save(comment);
 
         for (AppUser mentioned : mentionedUsers) {
-            notificationRepository.save(new Notification(
+            Notification saved = notificationRepository.save(new Notification(
                     mentioned, item, author, NotificationType.MENTIONED,
                     author.getName() + " mentioned you in a comment on \"" + item.getTitle() + "\""
             ));
+            notificationService.publish(NotificationResponse.from(saved), mentioned.getId());
         }
 
         return toResponse(comment);

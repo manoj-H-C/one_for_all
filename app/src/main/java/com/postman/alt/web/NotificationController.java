@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.UUID;
 
@@ -45,5 +46,13 @@ public class NotificationController {
     public ResponseEntity<Void> markAllRead() {
         notificationService.markAllRead(CurrentUser.id());
         return ResponseEntity.noContent().build();
+    }
+
+    // live push instead of the client polling this controller's own GET
+    // above - one open connection per tab, held until the client
+    // disconnects. See NotificationServiceImpl for the in-memory registry.
+    @GetMapping("/stream")
+    public SseEmitter stream() {
+        return notificationService.subscribe(CurrentUser.id());
     }
 }

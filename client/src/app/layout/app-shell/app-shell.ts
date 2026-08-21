@@ -1,4 +1,5 @@
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -8,7 +9,9 @@ import { NotificationBellService } from '../../core/state/notification-bell.serv
 import { SidebarService } from '../../core/state/sidebar.service';
 import { ProjectService } from '../../core/services/project.service';
 import { AuthService } from '../../core/services/auth.service';
+import { NotificationService } from '../../core/services/notification.service';
 import { ProjectResponse } from '../../core/models/project.model';
+import { NotificationResponse } from '../../core/models/notification.model';
 import { AvatarComponent } from '../../shared/ui/avatar';
 import { DropdownMenuComponent } from '../../shared/ui/dropdown-menu';
 import { ToastContainerComponent } from '../../shared/ui/toast-container';
@@ -29,6 +32,7 @@ interface NavItem {
     RouterOutlet,
     RouterLink,
     RouterLinkActive,
+    DatePipe,
     AvatarComponent,
     DropdownMenuComponent,
     ToastContainerComponent,
@@ -41,6 +45,7 @@ export class AppShellComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly projectService = inject(ProjectService);
   private readonly authService = inject(AuthService);
+  private readonly notificationService = inject(NotificationService);
 
   readonly authStore = inject(AuthStore);
   readonly currentProjectStore = inject(CurrentProjectStore);
@@ -48,7 +53,18 @@ export class AppShellComponent implements OnInit, OnDestroy {
   readonly sidebar = inject(SidebarService);
 
   readonly projects = signal<ProjectResponse[]>([]);
+  // the bell dropdown's preview list - refetched whenever the poller notices
+  // the unread count change (see the effect below), so it doesn't need its
+  // own separate poll loop or an "on open" hook into DropdownMenuComponent.
+  readonly recentNotifications = signal<NotificationResponse[]>([]);
   protected readonly colorFor = colorFor;
+
+  constructor() {
+    effect(() => {
+      this.bell.unreadCount();
+      this.notificationService.list(false, 0, 6).subscribe((page) => this.recentNotifications.set(page.content));
+    });
+  }
 
   readonly orgName = computed(() => this.authStore.currentUser()?.orgName ?? 'jeera_alt');
 
@@ -88,6 +104,7 @@ export class AppShellComponent implements OnInit, OnDestroy {
     const items: NavItem[] = [
       { icon: 'folder', label: 'All projects', link: ['/projects'], exact: true },
       { icon: 'bell', label: 'Notifications', link: ['/notifications'] },
+      { icon: 'calendar', label: 'Reminders', link: ['/reminders'] },
     ];
     if (this.authStore.isOwner() || this.authStore.canManageMembers()) {
       items.push({ icon: 'building', label: 'User Management', link: ['/org'], exact: true });
@@ -111,6 +128,13 @@ export class AppShellComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.bell.stop();
+  }
+
+  markAllReadFromBell(): void {
+    this.notificationService.markAllRead().subscribe(() => {
+      this.recentNotifications.update((list) => list.map((n) => ({ ...n, read: true })));
+      this.bell.refreshNow();
+    });
   }
 
   logout(): void {

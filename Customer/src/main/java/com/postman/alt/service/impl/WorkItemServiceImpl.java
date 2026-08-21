@@ -25,8 +25,10 @@ import com.postman.alt.repository.WorkItemRepository;
 import com.postman.alt.repository.WorkItemSpecifications;
 import com.postman.alt.repository.WorkItemTypeRepository;
 import com.postman.alt.repository.WorkflowStatusRepository;
+import com.postman.alt.service.NotificationService;
 import com.postman.alt.service.ProjectAccessService;
 import com.postman.alt.service.WorkItemService;
+import com.postman.alt.service.dto.NotificationResponse;
 import com.postman.alt.service.dto.WorkItemActivityResponse;
 import com.postman.alt.service.dto.WorkItemCreateRequest;
 import com.postman.alt.service.dto.WorkItemResponse;
@@ -51,6 +53,7 @@ public class WorkItemServiceImpl implements WorkItemService {
     private final WorkflowStatusRepository workflowStatusRepository;
     private final WorkItemActivityRepository workItemActivityRepository;
     private final NotificationRepository notificationRepository;
+    private final NotificationService notificationService;
     private final ProjectAccessService projectAccessService;
     private final CustomFieldDefinitionRepository customFieldDefinitionRepository;
     private final ProjectMemberRepository projectMemberRepository;
@@ -64,6 +67,7 @@ public class WorkItemServiceImpl implements WorkItemService {
             WorkflowStatusRepository workflowStatusRepository,
             WorkItemActivityRepository workItemActivityRepository,
             NotificationRepository notificationRepository,
+            NotificationService notificationService,
             ProjectAccessService projectAccessService,
             CustomFieldDefinitionRepository customFieldDefinitionRepository,
             ProjectMemberRepository projectMemberRepository,
@@ -76,6 +80,7 @@ public class WorkItemServiceImpl implements WorkItemService {
         this.workflowStatusRepository = workflowStatusRepository;
         this.workItemActivityRepository = workItemActivityRepository;
         this.notificationRepository = notificationRepository;
+        this.notificationService = notificationService;
         this.projectAccessService = projectAccessService;
         this.customFieldDefinitionRepository = customFieldDefinitionRepository;
         this.projectMemberRepository = projectMemberRepository;
@@ -120,10 +125,18 @@ public class WorkItemServiceImpl implements WorkItemService {
 
         item = workItemRepository.save(item);
 
+        AppUser createActor = getUser(actorId);
         if (item.getAssignee() != null) {
             // notifies as whoever actually made this API call, not
             // necessarily the (possibly different) chosen reporter.
-            notifyAssigned(item, getUser(actorId));
+            notifyAssigned(item, createActor);
+        }
+        // reporter can be the same person as the assignee, or the actor
+        // themselves - notified the same way assignee is above (no
+        // self-notification special-case there either), just as a distinct
+        // notification type.
+        if (item.getReporter() != null) {
+            notifyReporterAssigned(item, createActor);
         }
 
         return toResponse(item);
@@ -218,7 +231,7 @@ public class WorkItemServiceImpl implements WorkItemService {
             item.setStatus(newStatus);
 
             if (item.getAssignee() != null && !item.getAssignee().getId().equals(actorId)) {
-                notificationRepository.save(new Notification(
+                saveNotification(new Notification(
                         item.getAssignee(), item, actor, NotificationType.STATUS_CHANGED,
                         "\"" + item.getTitle() + "\" moved to " + newStatus.getName()
                 ));
@@ -279,6 +292,10 @@ public class WorkItemServiceImpl implements WorkItemService {
                 newReporter != null ? newReporter.getEmail() : null
         );
         item.setReporter(newReporter);
+
+        if (newReporter != null) {
+            notifyReporterAssigned(item, actor);
+        }
 
         return toResponse(item);
     }
@@ -402,10 +419,27 @@ public class WorkItemServiceImpl implements WorkItemService {
     }
 
     private void notifyAssigned(WorkItem item, AppUser actor) {
-        notificationRepository.save(new Notification(
+        saveNotification(new Notification(
                 item.getAssignee(), item, actor, NotificationType.ASSIGNED,
                 "You were assigned to \"" + item.getTitle() + "\""
         ));
+    }
+
+    private void notifyReporterAssigned(WorkItem item, AppUser actor) {
+        saveNotification(new Notification(
+                item.getReporter(), item, actor, NotificationType.REPORTER_ASSIGNED,
+                "You were made reporter of \"" + item.getTitle() + "\""
+        ));
+    }
+
+    // persists, then immediately pushes to the recipient's open SSE
+    // connection(s) if any - see NotificationServiceImpl.publish(). Every
+    // notification this service creates goes through here rather than
+    // calling notificationRepository.save(...) directly, so none of them
+    // silently skip the live-push side.
+    private void saveNotification(Notification notification) {
+        Notification saved = notificationRepository.save(notification);
+        notificationService.publish(NotificationResponse.from(saved), saved.getRecipient().getId());
     }
 
     private void logChange(WorkItem item, AppUser actor, String fieldName, String oldValue, String newValue) {

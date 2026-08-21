@@ -49,6 +49,8 @@ export const NOTIFICATION_TYPES = [
   'SUPPLY_REQUEST_APPROVED',
   'SUPPLY_REQUEST_REJECTED',
   'SUPPLY_REQUEST_FULFILLED',
+  'REMINDER',
+  'REPORTER_ASSIGNED',
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 

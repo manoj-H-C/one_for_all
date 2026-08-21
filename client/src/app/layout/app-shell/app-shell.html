@@ -202,22 +202,6 @@
       </button>
 
       <div class="ml-auto flex items-center gap-2">
-        <a
-          routerLink="/notifications"
-          class="relative rounded-xl p-2.5 text-slate-500 transition-all duration-150 hover:-translate-y-px hover:bg-slate-100 hover:text-slate-700"
-          aria-label="Notifications"
-        >
-          <app-icon name="bell" [size]="20" />
-          @if (bell.unreadCount() > 0) {
-            <span
-              class="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
-              style="background: linear-gradient(135deg, #fb7185, #e11d48)"
-            >
-              {{ bell.unreadCount() > 9 ? '9+' : bell.unreadCount() }}
-            </span>
-          }
-        </a>
-
         <app-dropdown-menu [minWidth]="200">
         <div trigger class="flex items-center gap-2 rounded-xl px-2 py-1.5 transition-all duration-150 hover:bg-slate-100">
           <app-avatar [name]="authStore.currentUser()?.name ?? '?'" [size]="32" />
@@ -243,6 +227,58 @@
             Log out
           </button>
         </div>
+        </app-dropdown-menu>
+
+        <app-dropdown-menu [minWidth]="320">
+          <div
+            trigger
+            class="relative rounded-xl p-2.5 text-slate-500 transition-all duration-150 hover:-translate-y-px hover:bg-slate-100 hover:text-slate-700"
+            aria-label="Notifications"
+          >
+            <app-icon name="bell" [size]="20" />
+            @if (bell.unreadCount() > 0) {
+              <span
+                class="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
+                style="background: linear-gradient(135deg, #fb7185, #e11d48)"
+              >
+                {{ bell.unreadCount() > 9 ? '9+' : bell.unreadCount() }}
+              </span>
+            }
+          </div>
+          <div menu class="w-80 max-w-[calc(100vw-2rem)]">
+            <div class="flex items-center justify-between px-3 py-2">
+              <p class="text-sm font-semibold text-slate-800">Notifications</p>
+              @if (bell.unreadCount() > 0) {
+                <button type="button" class="text-xs font-medium text-primary-600 hover:text-primary-700" (click)="markAllReadFromBell()">
+                  Mark all read
+                </button>
+              }
+            </div>
+            <div class="border-t border-slate-100"></div>
+            @if (recentNotifications().length === 0) {
+              <p class="px-3 py-6 text-center text-xs text-slate-400">No notifications yet.</p>
+            } @else {
+              <div class="max-h-80 overflow-y-auto py-1">
+                @for (n of recentNotifications(); track n.id) {
+                  <a
+                    [routerLink]="n.workItemId ? ['/work-items', n.workItemId] : null"
+                    class="flex items-start gap-2.5 px-3 py-2 hover:bg-slate-50"
+                    [class.bg-primary-50/40]="!n.read"
+                  >
+                    <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" [class.bg-primary-500]="!n.read"></span>
+                    <div class="min-w-0 flex-1">
+                      <p class="truncate text-xs text-slate-700" [class.font-medium]="!n.read">{{ n.message }}</p>
+                      <p class="text-[11px] text-slate-400">{{ n.createdAt | date: 'MMM d, h:mm a' }}</p>
+                    </div>
+                  </a>
+                }
+              </div>
+            }
+            <div class="border-t border-slate-100"></div>
+            <a routerLink="/notifications" class="block px-3 py-2 text-center text-xs font-medium text-primary-600 hover:bg-slate-50">
+              View all notifications
+            </a>
+          </div>
         </app-dropdown-menu>
       </div>
     </header>

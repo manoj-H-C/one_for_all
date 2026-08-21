@@ -24,9 +24,12 @@ import { PERMISSION_CODE } from '../../core/models/role.model';
 import { ConfirmDialogService } from '../../shared/ui/confirm-dialog.service';
 import { resolveProjectId } from '../../core/util/route.util';
 import { CustomFieldsFormComponent } from '../../shared/ui/custom-fields-form';
+import { RichTextEditorComponent } from '../../shared/ui/rich-text-editor';
+import { RichTextViewComponent } from '../../shared/ui/rich-text-view';
+import { isBlankHtml } from '../../shared/util/rich-text.util';
 import { CreateWorkItemModalComponent } from '../board/create-work-item-modal';
 import { AvatarComponent } from '../../shared/ui/avatar';
-import { IconComponent } from '../../shared/ui/icon';
+import { IconComponent, IconName } from '../../shared/ui/icon';
 import { PriorityBadgeComponent } from '../../shared/ui/priority-badge';
 import { StatusPillComponent } from '../../shared/ui/status-pill';
 import { categoryColorFor, colorForIndex } from '../../shared/util/color-hash';
@@ -34,8 +37,9 @@ import { CommentsTabComponent } from './comments-tab';
 import { AttachmentsTabComponent } from './attachments-tab';
 import { LinksTabComponent } from './links-tab';
 import { ActivityTabComponent } from './activity-tab';
+import { RemindersTabComponent } from './reminders-tab';
 
-type Tab = 'comments' | 'attachments' | 'links' | 'activity';
+type Tab = 'comments' | 'attachments' | 'links' | 'activity' | 'reminders';
 
 const PRIORITY_ACCENT: Record<Priority, string> = {
   LOWEST: '#94a3b8',
@@ -52,6 +56,8 @@ const PRIORITY_ACCENT: Record<Priority, string> = {
     DatePipe,
     RouterLink,
     CustomFieldsFormComponent,
+    RichTextEditorComponent,
+    RichTextViewComponent,
     CreateWorkItemModalComponent,
     AvatarComponent,
     IconComponent,
@@ -61,6 +67,7 @@ const PRIORITY_ACCENT: Record<Priority, string> = {
     AttachmentsTabComponent,
     LinksTabComponent,
     ActivityTabComponent,
+    RemindersTabComponent,
   ],
   templateUrl: './work-item-detail.html',
 })
@@ -100,6 +107,15 @@ export class WorkItemDetailComponent implements OnInit {
   readonly activeTab = signal<Tab>('comments');
 
   readonly priorities = PRIORITIES;
+  protected readonly isBlankHtml = isBlankHtml;
+
+  protected readonly tabDefs: { key: Tab; label: string; icon: IconName }[] = [
+    { key: 'comments', label: 'Comments', icon: 'message' },
+    { key: 'attachments', label: 'Attachments', icon: 'photo' },
+    { key: 'links', label: 'Links', icon: 'tag' },
+    { key: 'activity', label: 'Activity', icon: 'text' },
+    { key: 'reminders', label: 'Reminders', icon: 'bell' },
+  ];
 
   readonly title = signal('');
   readonly description = signal('');
@@ -127,6 +143,24 @@ export class WorkItemDetailComponent implements OnInit {
   readonly overdue = computed(() => {
     const due = this.item()?.dueDate;
     return !!due && due < new Date().toISOString().slice(0, 10);
+  });
+
+  // compares the editable signals against the last-saved item rather than
+  // tracking a separate "touched" flag - stays correct even when a field is
+  // edited and then edited back to its original value.
+  readonly isDirty = computed(() => {
+    const it = this.item();
+    if (!it) return false;
+    // "blank" HTML (an empty editor's leftover "<p></p>", vs. this item's
+    // saved null) should never register as a change on its own.
+    const normalizedDescription = (html: string | null | undefined) => (isBlankHtml(html) ? '' : (html ?? ''));
+    return (
+      this.title() !== it.title ||
+      normalizedDescription(this.description()) !== normalizedDescription(it.description) ||
+      this.priority() !== it.priority ||
+      this.dueDate() !== (it.dueDate ?? '') ||
+      JSON.stringify(this.customFieldValues()) !== JSON.stringify(it.customFields ?? {})
+    );
   });
 
   /** The category's own explicitly-chosen color if it has one, otherwise the same by-position fallback used everywhere else. */
@@ -204,6 +238,15 @@ export class WorkItemDetailComponent implements OnInit {
     this.customFieldValues.set({ ...item.customFields });
   }
 
+  discard(): void {
+    const it = this.item();
+    if (it) this.applyItem(it);
+  }
+
+  copyLink(): void {
+    navigator.clipboard.writeText(window.location.href).then(() => this.toast.success('Link copied'));
+  }
+
   save(): void {
     if (!this.title().trim()) return;
     this.saving.set(true);
@@ -213,7 +256,7 @@ export class WorkItemDetailComponent implements OnInit {
     this.workItemService
       .update(this.workItemId, {
         title: this.title().trim(),
-        description: this.description().trim() || null,
+        description: isBlankHtml(this.description()) ? null : this.description(),
         priority: this.priority(),
         dueDate: this.dueDate() || null,
         customFields: normalizedCustomFields,

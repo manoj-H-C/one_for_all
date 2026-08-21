@@ -21,8 +21,10 @@ import com.postman.alt.repository.InventoryMovementRepository;
 import com.postman.alt.repository.NotificationRepository;
 import com.postman.alt.repository.ProjectRepository;
 import com.postman.alt.repository.SupplyRequestRepository;
+import com.postman.alt.service.NotificationService;
 import com.postman.alt.service.ProjectAccessService;
 import com.postman.alt.service.SupplyRequestService;
+import com.postman.alt.service.dto.NotificationResponse;
 import com.postman.alt.service.dto.SupplyRequestCreateRequest;
 import com.postman.alt.service.dto.SupplyRequestDecisionRequest;
 import com.postman.alt.service.dto.SupplyRequestResponse;
@@ -45,6 +47,7 @@ public class SupplyRequestServiceImpl implements SupplyRequestService {
     private final ProjectRepository projectRepository;
     private final AppUserRepository appUserRepository;
     private final NotificationRepository notificationRepository;
+    private final NotificationService notificationService;
     private final ProjectAccessService projectAccessService;
 
     public SupplyRequestServiceImpl(
@@ -55,6 +58,7 @@ public class SupplyRequestServiceImpl implements SupplyRequestService {
             ProjectRepository projectRepository,
             AppUserRepository appUserRepository,
             NotificationRepository notificationRepository,
+            NotificationService notificationService,
             ProjectAccessService projectAccessService
     ) {
         this.supplyRequestRepository = supplyRequestRepository;
@@ -64,6 +68,7 @@ public class SupplyRequestServiceImpl implements SupplyRequestService {
         this.projectRepository = projectRepository;
         this.appUserRepository = appUserRepository;
         this.notificationRepository = notificationRepository;
+        this.notificationService = notificationService;
         this.projectAccessService = projectAccessService;
     }
 
@@ -185,7 +190,8 @@ public class SupplyRequestServiceImpl implements SupplyRequestService {
         if (recipient.getId().equals(actor.getId())) {
             return;
         }
-        notificationRepository.save(new Notification(recipient, null, actor, type, message));
+        Notification saved = notificationRepository.save(new Notification(recipient, null, actor, type, message));
+        notificationService.publish(NotificationResponse.from(saved), recipient.getId());
     }
 
     @Override

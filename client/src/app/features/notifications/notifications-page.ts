@@ -25,6 +25,8 @@ const NOTIFICATION_TYPE_META: Record<NotificationType, NotificationTypeMeta> = {
   SUPPLY_REQUEST_APPROVED: { icon: 'building', bg: 'bg-emerald-500', text: 'text-white' },
   SUPPLY_REQUEST_REJECTED: { icon: 'building', bg: 'bg-red-500', text: 'text-white' },
   SUPPLY_REQUEST_FULFILLED: { icon: 'building', bg: 'bg-sky-500', text: 'text-white' },
+  REMINDER: { icon: 'bell', bg: 'bg-amber-500', text: 'text-white' },
+  REPORTER_ASSIGNED: { icon: 'at', bg: 'bg-violet-500', text: 'text-white' },
 };
 
 @Component({

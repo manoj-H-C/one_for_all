@@ -37,7 +37,9 @@ export type IconName =
   | 'at'
   | 'message'
   | 'menu'
-  | 'tag';
+  | 'tag'
+  | 'link'
+  | 'code';
 
 /** Inline Heroicons-style outline icons (24x24, stroke-based) - no external asset requests, no emoji. */
 @Component({
@@ -203,6 +205,13 @@ export type IconName =
         @case ('tag') {
           <path d="M11.5 3.5H5.5a2 2 0 0 0-2 2v6l9.5 9.5a2 2 0 0 0 2.83 0l5.67-5.67a2 2 0 0 0 0-2.83L11.5 3.5z" />
           <circle cx="8" cy="8" r="1.4" fill="currentColor" stroke="none" />
+        }
+        @case ('link') {
+          <path d="M13.5 10.5a3.5 3.5 0 0 0-5-.1l-3 3a3.5 3.5 0 0 0 5 5l1.2-1.2" />
+          <path d="M10.5 13.5a3.5 3.5 0 0 0 5 .1l3-3a3.5 3.5 0 0 0-5-5l-1.2 1.2" />
+        }
+        @case ('code') {
+          <path d="M8.5 7L4 12l4.5 5M15.5 7L20 12l-4.5 5" />
         }
       }
     </svg>

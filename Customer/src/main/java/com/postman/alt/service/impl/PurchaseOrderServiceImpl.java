@@ -18,7 +18,9 @@ import com.postman.alt.repository.InventoryMovementRepository;
 import com.postman.alt.repository.NotificationRepository;
 import com.postman.alt.repository.PurchaseOrderRepository;
 import com.postman.alt.repository.SupplyRequestRepository;
+import com.postman.alt.service.NotificationService;
 import com.postman.alt.service.PurchaseOrderService;
+import com.postman.alt.service.dto.NotificationResponse;
 import com.postman.alt.service.dto.PurchaseOrderCreateRequest;
 import com.postman.alt.service.dto.PurchaseOrderLineResponse;
 import com.postman.alt.service.dto.PurchaseOrderResponse;
@@ -37,19 +39,22 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private final InventoryMovementRepository movementRepository;
     private final AppUserRepository appUserRepository;
     private final NotificationRepository notificationRepository;
+    private final NotificationService notificationService;
 
     public PurchaseOrderServiceImpl(
             PurchaseOrderRepository purchaseOrderRepository,
             SupplyRequestRepository supplyRequestRepository,
             InventoryMovementRepository movementRepository,
             AppUserRepository appUserRepository,
-            NotificationRepository notificationRepository
+            NotificationRepository notificationRepository,
+            NotificationService notificationService
     ) {
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.supplyRequestRepository = supplyRequestRepository;
         this.movementRepository = movementRepository;
         this.appUserRepository = appUserRepository;
         this.notificationRepository = notificationRepository;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -159,11 +164,12 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         if (recipient.getId().equals(actor.getId())) {
             return;
         }
-        notificationRepository.save(new Notification(
+        Notification saved = notificationRepository.save(new Notification(
                 recipient, null, actor, NotificationType.SUPPLY_REQUEST_FULFILLED,
                 "Your request for " + line.getQuantity() + " " + line.getMaterial().getUnit()
                         + " of " + line.getMaterial().getName() + " was fulfilled"
         ));
+        notificationService.publish(NotificationResponse.from(saved), recipient.getId());
     }
 
     // owner or a delegated admin (canManageMembers) - same gate
