@@ -337,6 +337,23 @@ body {
   to { background-position: 240px 180px, 240px 180px; }
 }
 
+/* same faint grid as the hero's aurora-grid, tuned for light section
+   backgrounds (landing page's "teams"/"features" sections) so they don't
+   read as flat, texture-less voids after the hero's aurora backdrop. */
+.light-grid {
+  background-image: linear-gradient(rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 65% 55% at 50% 0%, black 30%, transparent 75%);
+}
+
+/* small rounded pill above a section heading (e.g. "TEAMS", "FEATURES") -
+   the light-mode counterpart to the hero's badge, gives each section its
+   own visual anchor instead of jumping straight from a bare h2. */
+.section-kicker {
+  @apply inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-primary-600 shadow-sm;
+}
+
 /* soft pulsing glow directly behind the card, so it reads as lit-from-behind
    rather than just floating on top of an unrelated background */
 .card-spotlight {

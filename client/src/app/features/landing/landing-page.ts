@@ -100,6 +100,15 @@ export class LandingPageComponent {
     },
   ];
 
+  // abstract mini-kanban motif for the flagship "Boards & sprints" feature
+  // card - three columns of varying-height bars standing in for a board's
+  // columns/cards, without needing another screenshot asset.
+  protected readonly miniBoardColumns: { tint: string; bars: number[] }[] = [
+    { tint: 'bg-violet-50', bars: [35, 22] },
+    { tint: 'bg-sky-50', bars: [26, 38, 19] },
+    { tint: 'bg-emerald-50', bars: [29] },
+  ];
+
   protected readonly features: Feature[] = [
     {
       icon: 'board',
