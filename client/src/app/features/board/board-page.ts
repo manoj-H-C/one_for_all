@@ -1,9 +1,9 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CdkDragDrop, CdkDropList, CdkDropListGroup, CdkDrag, transferArrayItem } from '@angular/cdk/drag-drop';
-import { forkJoin } from 'rxjs';
+import { forkJoin, switchMap } from 'rxjs';
 import { WorkflowService } from '../../core/services/workflow.service';
 import { WorkItemService } from '../../core/services/work-item.service';
 import { MemberService } from '../../core/services/member.service';
@@ -21,7 +21,7 @@ import { SprintResponse } from '../../core/models/sprint.model';
 import { WorkItemTypeResponse } from '../../core/models/work-item-type.model';
 import { Page, PRIORITIES, Priority } from '../../core/models/common.model';
 import { PERMISSION_CODE } from '../../core/models/role.model';
-import { resolveProjectId } from '../../core/util/route.util';
+import { projectId$, resolveProjectId } from '../../core/util/route.util';
 import { WorkItemCardComponent } from './work-item-card';
 import { CreateWorkItemModalComponent } from './create-work-item-modal';
 import { StatusPillComponent } from '../../shared/ui/status-pill';
@@ -67,9 +67,13 @@ export class BoardPageComponent implements OnInit {
   private readonly workItemTypeService = inject(WorkItemTypeService);
   private readonly permissions = inject(ProjectPermissionsService);
   private readonly toast = inject(ToastService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly currentProjectStore = inject(CurrentProjectStore);
-  readonly projectId = resolveProjectId(this.route);
+  // reassigned on every navigation - see ngOnInit. Not a signal because
+  // every other piece of this page's data is already reloaded imperatively
+  // inside loadBoardData() rather than reactively derived from it.
+  projectId = resolveProjectId(this.route);
 
   readonly view = signal<'board' | 'list'>('board');
   readonly statuses = signal<WorkflowStatusResponse[]>([]);
@@ -96,12 +100,14 @@ export class BoardPageComponent implements OnInit {
   readonly listPage = signal<Page<WorkItemResponse> | null>(null);
   readonly listPageNumber = signal(0);
 
-  readonly canCreate = toSignal(this.permissions.has(this.projectId, PERMISSION_CODE.WORK_ITEM_CREATE), {
-    initialValue: false,
-  });
-  readonly canEdit = toSignal(this.permissions.has(this.projectId, PERMISSION_CODE.WORK_ITEM_EDIT), {
-    initialValue: false,
-  });
+  readonly canCreate = toSignal(
+    projectId$(this.route).pipe(switchMap((id) => this.permissions.has(id, PERMISSION_CODE.WORK_ITEM_CREATE))),
+    { initialValue: false },
+  );
+  readonly canEdit = toSignal(
+    projectId$(this.route).pipe(switchMap((id) => this.permissions.has(id, PERMISSION_CODE.WORK_ITEM_EDIT))),
+    { initialValue: false },
+  );
 
   readonly sortedStatuses = computed(() => [...this.statuses()].sort((a, b) => a.sortOrder - b.sortOrder));
 
@@ -151,7 +157,17 @@ export class BoardPageComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.loadBoardData();
+    // subscribing (rather than reading resolveProjectId once) matters here
+    // because the nav bar's project switcher navigates within this same
+    // route, just with a different :projectId - Angular reuses this
+    // component instance instead of re-creating it. Without this
+    // subscription the board would never notice the project changed.
+    projectId$(this.route)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((id) => {
+        this.projectId = id;
+        this.loadBoardData();
+      });
   }
 
   private loadBoardData(): void {

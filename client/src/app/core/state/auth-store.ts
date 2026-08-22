@@ -3,6 +3,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, finalize, shareReplay, tap } from 'rxjs';
 import { API_BASE_URL } from '../config/api.config';
 import { AuthResponse, UserResponse } from '../models/auth.model';
+import { CurrentProjectStore } from './current-project.store';
 
 const ACCESS_TOKEN_KEY = 'jeera.accessToken';
 const REFRESH_TOKEN_KEY = 'jeera.refreshToken';
@@ -10,6 +11,7 @@ const REFRESH_TOKEN_KEY = 'jeera.refreshToken';
 @Injectable({ providedIn: 'root' })
 export class AuthStore {
   private readonly http = inject(HttpClient);
+  private readonly currentProjectStore = inject(CurrentProjectStore);
 
   private readonly accessTokenSig = signal<string | null>(localStorage.getItem(ACCESS_TOKEN_KEY));
   private readonly refreshTokenSig = signal<string | null>(localStorage.getItem(REFRESH_TOKEN_KEY));
@@ -46,6 +48,10 @@ export class AuthStore {
     this.currentUserSig.set(null);
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
+    // CurrentProjectStore is a root singleton with no lifecycle tied to
+    // AppShellComponent, so without this the next user to log in in the
+    // same tab would briefly see the previous user's project in the nav bar.
+    this.currentProjectStore.clear();
   }
 
   loadCurrentUser(): Observable<UserResponse> {

@@ -40,4 +40,9 @@ export class CurrentProjectStore {
   applyUpdate(updated: ProjectResponse): void {
     this.project.set(updated);
   }
+
+  /** Called on logout - this is a root-level singleton, so nothing else clears it, and without this the next user to log in in the same tab would briefly see the previous user's project in the nav bar until a full page refresh. */
+  clear(): void {
+    this.project.set(null);
+  }
 }

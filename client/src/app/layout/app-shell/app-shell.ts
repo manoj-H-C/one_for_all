@@ -1,5 +1,6 @@
 import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -33,6 +34,7 @@ interface NavItem {
     RouterLink,
     RouterLinkActive,
     DatePipe,
+    FormsModule,
     AvatarComponent,
     DropdownMenuComponent,
     ToastContainerComponent,
@@ -53,6 +55,14 @@ export class AppShellComponent implements OnInit, OnDestroy {
   readonly sidebar = inject(SidebarService);
 
   readonly projects = signal<ProjectResponse[]>([]);
+  readonly projectSwitcherQuery = signal('');
+  readonly filteredProjects = computed(() => {
+    const query = this.projectSwitcherQuery().trim().toLowerCase();
+    if (!query) return this.projects();
+    return this.projects().filter(
+      (p) => p.name.toLowerCase().includes(query) || p.key.toLowerCase().includes(query),
+    );
+  });
   // the bell dropdown's preview list - refetched whenever the poller notices
   // the unread count change (see the effect below), so it doesn't need its
   // own separate poll loop or an "on open" hook into DropdownMenuComponent.

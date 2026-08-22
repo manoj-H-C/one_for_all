@@ -98,24 +98,38 @@
           </button>
         }
         <div menu>
-          @for (project of projects(); track project.id) {
-            <a
-              [routerLink]="['/projects', project.id, 'board']"
-              class="flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-slate-50"
-              [class.bg-slate-50]="project.id === projectId()"
-              (click)="sidebar.closeMobile()"
-            >
-              <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold {{ colorFor(project.key).bg }} {{ colorFor(project.key).text }}">
-                {{ project.key.slice(0, 2) }}
-              </span>
-              <span class="min-w-0">
-                <span class="block truncate font-medium text-slate-800">{{ project.name }}</span>
-                <span class="block text-xs text-slate-500">{{ project.key }}</span>
-              </span>
-            </a>
-          } @empty {
-            <p class="px-3 py-2 text-sm text-slate-500">No projects yet</p>
+          @if (projects().length > 6) {
+            <div class="px-2 pb-1">
+              <input
+                type="text"
+                placeholder="Search projects..."
+                class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-primary-400 focus:outline-none"
+                [ngModel]="projectSwitcherQuery()"
+                (ngModelChange)="projectSwitcherQuery.set($event)"
+                (click)="$event.stopPropagation()"
+              />
+            </div>
           }
+          <div class="max-h-64 overflow-y-auto">
+            @for (project of filteredProjects(); track project.id) {
+              <a
+                [routerLink]="['/projects', project.id, 'board']"
+                class="flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-slate-50"
+                [class.bg-slate-50]="project.id === projectId()"
+                (click)="sidebar.closeMobile()"
+              >
+                <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold {{ colorFor(project.key).bg }} {{ colorFor(project.key).text }}">
+                  {{ project.key.slice(0, 2) }}
+                </span>
+                <span class="min-w-0">
+                  <span class="block truncate font-medium text-slate-800">{{ project.name }}</span>
+                  <span class="block text-xs text-slate-500">{{ project.key }}</span>
+                </span>
+              </a>
+            } @empty {
+              <p class="px-3 py-2 text-sm text-slate-500">{{ projects().length > 0 ? 'No matching projects' : 'No projects yet' }}</p>
+            }
+          </div>
           <div class="my-1 border-t border-slate-100"></div>
           <a routerLink="/projects" class="block px-3 py-2 text-sm font-medium text-primary-700 hover:bg-slate-50" (click)="sidebar.closeMobile()">
             Manage projects
